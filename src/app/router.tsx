@@ -1,103 +1,94 @@
 import {
-  Link,
-  Outlet,
-  createRoute,
-  createRootRoute,
-  createRouter,
+    Link,
+    createRoute,
+    createRootRoute,
+    createRouter,
 } from "@tanstack/react-router"
 
-import CheckoutPage from "@/routes/checkout"
-import CheckoutSuccessPage from "@/routes/checkout/success"
-import CartPage from "@/routes/cart"
-import HomePage from "@/routes/index"
-import ProductBarcodePage from "@/routes/products/$barcode"
-import ProductsPage from "@/routes/products"
-import PrinterSettingsPage from "@/routes/settings/printer"
-import SettingsPage from "@/routes/settings"
-import SyncSettingsPage from "@/routes/settings/sync"
-import TransactionDetailPage from "@/routes/transactions/$id"
-import TransactionsPage from "@/routes/transactions"
+import CheckoutPage from "@/routes/checkout/index.tsx"
+import CheckoutSuccessPage from "@/features/pos/pages/checkout-success-page"
+import CartPage from "@/routes/cart/index.tsx"
+import HomePage from "@/routes/index.tsx"
+import ProductBarcodePage from "@/routes/products/$barcode.tsx"
+import ProductsPage from "@/routes/products/index.tsx"
+import PrinterSettingsPage from "@/routes/settings/printer.tsx"
+import SettingsPage from "@/routes/settings/index.tsx"
+import SyncSettingsPage from "@/routes/settings/sync.tsx"
+import TransactionDetailPage from "@/routes/transactions/$id.tsx"
+import TransactionsPage from "@/routes/transactions/index.tsx"
 
-import { AppShell } from "@/shared/components/layout/app-shell"
-
-function RootLayout() {
-  return (
-    <AppShell>
-      <Outlet />
-    </AppShell>
-  )
-}
+import { RootLayout } from "@/app/root-layout.tsx"
 
 const rootRoute = createRootRoute({ component: RootLayout })
 const indexRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/",
-  component: HomePage,
+    getParentRoute: () => rootRoute,
+    path: "/",
+    component: HomePage,
 })
 const productsRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "products",
-  component: ProductsPage,
+    getParentRoute: () => rootRoute,
+    path: "products",
+    component: ProductsPage,
 })
 const productBarcodeRoute = createRoute({
-  getParentRoute: () => productsRoute,
-  path: "$barcode",
-  component: ProductBarcodePage,
+    getParentRoute: () => productsRoute,
+    path: "$barcode",
+    component: ProductBarcodePage,
 })
 const cartRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "cart",
-  component: CartPage,
+    getParentRoute: () => rootRoute,
+    path: "cart",
+    component: CartPage,
 })
 const checkoutRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "checkout",
-  component: CheckoutPage,
+    getParentRoute: () => rootRoute,
+    path: "checkout",
+    component: CheckoutPage,
 })
 const checkoutSuccessRoute = createRoute({
-  getParentRoute: () => checkoutRoute,
-  path: "success",
-  component: CheckoutSuccessPage,
+    getParentRoute: () => checkoutRoute,
+    path: "success",
+    component: CheckoutSuccessPage,
 })
 const transactionsRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "transactions",
-  component: TransactionsPage,
+    getParentRoute: () => rootRoute,
+    path: "transactions",
+    component: TransactionsPage,
 })
 const transactionDetailRoute = createRoute({
-  getParentRoute: () => transactionsRoute,
-  path: "$id",
-  component: TransactionDetailPage,
+    getParentRoute: () => transactionsRoute,
+    path: "$id",
+    component: TransactionDetailPage,
 })
 const settingsRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "settings",
-  component: SettingsPage,
+    getParentRoute: () => rootRoute,
+    path: "settings",
+    component: SettingsPage,
 })
 const syncSettingsRoute = createRoute({
-  getParentRoute: () => settingsRoute,
-  path: "sync",
-  component: SyncSettingsPage,
+    getParentRoute: () => settingsRoute,
+    path: "sync",
+    component: SyncSettingsPage,
 })
 const printerSettingsRoute = createRoute({
-  getParentRoute: () => settingsRoute,
-  path: "printer",
-  component: PrinterSettingsPage,
+    getParentRoute: () => settingsRoute,
+    path: "printer",
+    component: PrinterSettingsPage,
 })
 
 const routeTree = rootRoute.addChildren([
-  indexRoute,
-  productsRoute.addChildren([productBarcodeRoute]),
-  cartRoute,
-  checkoutRoute.addChildren([checkoutSuccessRoute]),
-  transactionsRoute.addChildren([transactionDetailRoute]),
-  settingsRoute.addChildren([syncSettingsRoute, printerSettingsRoute]),
+    indexRoute,
+    productsRoute.addChildren([productBarcodeRoute]),
+    cartRoute,
+    checkoutRoute.addChildren([checkoutSuccessRoute]),
+    transactionsRoute.addChildren([transactionDetailRoute]),
+    settingsRoute.addChildren([syncSettingsRoute, printerSettingsRoute]),
 ])
 
 export const router = createRouter({
-  routeTree,
-  defaultPreload: "intent",
-  context: {
-    breadcrumb: <Link to="/">POS Retail</Link>,
-  },
+    routeTree,
+    defaultPreload: "intent",
+    context: {
+        breadcrumb: <Link to="/">POS Retail</Link>,
+    },
 })
