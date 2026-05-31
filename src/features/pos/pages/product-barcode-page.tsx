@@ -1,10 +1,7 @@
-type BarcodeRouteProps = {
-    barcode?: string
-}
+import { useParams } from "@tanstack/react-router"
 
-export default function ProductBarcodeRoute({
-    barcode,
-}: BarcodeRouteProps = {}) {
+export default function ProductBarcodePage() {
+    const { barcode } = useParams({ from: "/products/$barcode" })
     return (
         <div className="space-y-2">
             <h1 className="text-2xl font-semibold">Product lookup</h1>

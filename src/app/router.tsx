@@ -5,17 +5,17 @@ import {
     createRouter,
 } from "@tanstack/react-router"
 
-import CheckoutPage from "@/routes/checkout/index.tsx"
+import CheckoutPage from "@/features/pos/pages/checkout-page"
 import CheckoutSuccessPage from "@/features/pos/pages/checkout-success-page"
-import CartPage from "@/routes/cart/index.tsx"
-import HomePage from "@/routes/index.tsx"
-import ProductBarcodePage from "@/routes/products/$barcode.tsx"
-import ProductsPage from "@/routes/products/index.tsx"
-import PrinterSettingsPage from "@/routes/settings/printer.tsx"
-import SettingsPage from "@/routes/settings/index.tsx"
-import SyncSettingsPage from "@/routes/settings/sync.tsx"
-import TransactionDetailPage from "@/routes/transactions/$id.tsx"
-import TransactionsPage from "@/routes/transactions/index.tsx"
+import CartPage from "@/features/pos/pages/cart-page"
+import HomePage from "@/features/pos/pages/pos-dashboard"
+import ProductBarcodePage from "@/features/pos/pages/product-barcode-page"
+import ProductsPage from "@/features/pos/pages/product-browser"
+import PrinterSettingsPage from "@/features/printer/pages/printer-settings"
+import SettingsPage from "@/features/pos/pages/settings-page"
+import SyncSettingsPage from "@/features/sync/pages/sync-settings"
+import TransactionDetailPage from "@/features/pos/pages/transaction-detail-page"
+import TransactionsPage from "@/features/pos/pages/transactions-page"
 
 import { RootLayout } from "@/app/root-layout.tsx"
 
