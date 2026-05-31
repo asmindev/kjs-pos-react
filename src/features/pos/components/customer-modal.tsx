@@ -81,7 +81,7 @@ export const CustomerModal = memo(function CustomerModal({
             <Button
                 variant="outline"
                 className={cn(
-                    "h-auto min-h-8 justify-between px-3 py-1.5 text-xs",
+                    "h-11 min-h-8 justify-between px-3 py-1.5 text-xs",
                     !customer && "w-55",
                     customer && "max-w-55",
                     className

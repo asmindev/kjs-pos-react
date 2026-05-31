@@ -19,9 +19,11 @@ export type PosPhase =
 export type PaymentMethod = "cash" | "card" | "transfer"
 
 export type SelectedCustomer = {
-    id: string
+    id: string | number
     name: string
     phone?: string
+    street?: string
+    city?: string
 } | null
 
 type PosState = {

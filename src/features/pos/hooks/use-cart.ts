@@ -10,6 +10,10 @@ type CartState = {
     items: CartItem[]
     discount: number
 
+    // Selection
+    selectedId: string | null
+    selectItem: (productId: string | null) => void
+
     // Actions
     addItem: (product: Product, quantity?: number) => void
     removeItem: (productId: string) => void
@@ -26,6 +30,9 @@ type CartState = {
 export const useCart = create<CartState>((set, get) => ({
     items: [],
     discount: 0,
+    selectedId: null,
+
+    selectItem: (productId) => set({ selectedId: productId }),
 
     addItem: (product, quantity = 1) => {
         set((state) => {

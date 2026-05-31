@@ -18,6 +18,8 @@ import { calculateSubtotal } from "@/features/pos/domain/services/pricing-servic
 
 export function CartSidebar() {
     const items = useCart((s) => s.items)
+    const selectedId = useCart((s) => s.selectedId)
+    const selectItem = useCart((s) => s.selectItem)
     const removeItem = useCart((s) => s.removeItem)
     const updateQuantity = useCart((s) => s.updateQuantity)
     const phase = usePosState((s) => s.phase)
@@ -61,69 +63,43 @@ export function CartSidebar() {
                 </CardContent>
             ) : (
                 <>
-                    <div className="flex-1 overflow-y-auto overflow-x-hidden">
-                        <CardContent className="space-y-1 pb-0">
-                            {items.map((item) => (
-                                <div
-                                    key={item.product.id}
-                                    className="flex w-full items-center gap-2 px-2 py-2 transition-colors hover:bg-muted/50"
-                                >
-                                    <div className="min-w-0 flex-1">
-                                        <p className="truncate text-xs font-semibold">
-                                            {item.product.name}
-                                        </p>
-                                        <p className="text-[10px] text-muted-foreground">
-                                            Rp{" "}
-                                            {item.product.price.toLocaleString(
-                                                "id-ID"
-                                            )}
-                                        </p>
-                                    </div>
-                                    <div className="flex shrink-0 items-center gap-0.5">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon-xs"
-                                            onClick={() =>
-                                                updateQuantity(
-                                                    item.product.id,
-                                                    item.quantity - 1
-                                                )
-                                            }
-                                            disabled={isPaymentLocked}
-                                        >
-                                            <Minus className="size-3" />
-                                        </Button>
-                                        <span className="w-6 text-center text-xs font-semibold tabular-nums">
-                                            {item.quantity}
-                                        </span>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon-xs"
-                                            onClick={() =>
-                                                updateQuantity(
-                                                    item.product.id,
-                                                    item.quantity + 1
-                                                )
-                                            }
-                                            disabled={isPaymentLocked}
-                                        >
-                                            <Plus className="size-3" />
-                                        </Button>
-                                    </div>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon-xs"
+                    <div className="flex-1 overflow-x-hidden overflow-y-auto">
+                        <div className="space-y-1 px-0 pt-1 pb-0">
+                            {items.map((item) => {
+                                const isSelected =
+                                    selectedId === item.product.id
+                                return (
+                                    <button
+                                        key={item.product.id}
+                                        type="button"
+                                        className={`flex w-full items-center gap-2 px-2 py-2 text-left transition-colors ${
+                                            isSelected
+                                                ? "bg-muted ring-1 ring-muted"
+                                                : "hover:bg-muted"
+                                        }`}
                                         onClick={() =>
-                                            removeItem(item.product.id)
+                                            selectItem(
+                                                isSelected
+                                                    ? null
+                                                    : item.product.id
+                                            )
                                         }
-                                        disabled={isPaymentLocked}
-                                        className="shrink-0 text-muted-foreground hover:text-destructive"
                                     >
-                                        <X className="size-3" />
-                                    </Button>
-                                </div>
-                            ))}
-                        </CardContent>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="truncate text-xs font-semibold">
+                                                {item.product.name}
+                                            </p>
+                                            <p className="text-[10px] text-muted-foreground">
+                                                Rp{" "}
+                                                {item.product.price.toLocaleString(
+                                                    "id-ID"
+                                                )}
+                                            </p>
+                                        </div>
+                                    </button>
+                                )
+                            })}
+                        </div>
                     </div>
 
                     <CardFooter className="flex-col gap-3">
@@ -159,7 +135,11 @@ export function CartSidebar() {
 
                         <Button
                             className="h-11 w-full text-sm font-bold tracking-wide"
-                            onClick={() => startTransition(() => startPayment())}
+                            onClick={() =>
+                                startTransition(() => {
+                                    startPayment()
+                                })
+                            }
                             disabled={items.length === 0 || isPaymentLocked}
                         >
                             <Banknote className="size-4" />
