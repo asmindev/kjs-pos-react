@@ -17,7 +17,7 @@ import { ShoppingCart, Minus, Plus, X, Banknote } from "lucide-react"
 export function CartSidebar() {
     const { items, removeItem, updateQuantity, getSubtotal, getTotal } =
         useCart()
-    const { startPayment, phase, setCustomer } = usePosState()
+    const { startPayment, phase } = usePosState()
 
     const subtotal = getSubtotal()
     const total = getTotal()
@@ -139,7 +139,7 @@ export function CartSidebar() {
 
                         <div className="flex w-full gap-2">
                             <div className="flex-1">
-                                <CustomerSelect onSelect={setCustomer} />
+                                <CustomerSelect />
                             </div>
                             <div className="w-24">
                                 <PromoInput />

@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { BarcodeInput } from "@/features/pos/components/barcode-input"
 import { ProductGrid } from "@/features/pos/components/product-grid"
 import { CartSidebar } from "@/features/pos/components/cart-sidebar"
@@ -36,6 +36,11 @@ export default function POSDashboard() {
     const { setCustomer } = usePosState()
     const { isOnline, pendingCount } = useSync()
     const { products, isLoading, error, refetch } = usePosData()
+
+    // Fetch data on mount
+    useEffect(() => {
+        refetch()
+    }, [refetch])
 
     return (
         <div className="flex h-full flex-col gap-3">

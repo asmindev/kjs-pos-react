@@ -41,7 +41,14 @@ function ProductCard({
                         >
                             Sisa {product.stock}
                         </Badge>
-                    ) : null}
+                    ) : (
+                        <Badge
+                            variant="secondary"
+                            className="px-1.5 py-0 text-[9px] text-muted-foreground"
+                        >
+                            Stok {product.stock}
+                        </Badge>
+                    )}
                 </div>
 
                 <div className="mt-1 min-w-0 space-y-1">

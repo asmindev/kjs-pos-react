@@ -1,12 +1,10 @@
-import { useEffect, useState, useCallback } from "react"
+import { create } from "zustand"
 import {
     fetchProducts,
     fetchCustomers,
     type OdooProduct,
     type OdooCustomer,
 } from "@/features/pos/api/odoo-adapter"
-import { useAuth } from "@/features/pos/hooks/use-auth"
-import { useNetworkStatus } from "@/shared/hooks/use-network-status"
 
 type Product = {
     id: string
@@ -28,6 +26,7 @@ type PosDataState = {
     isLoading: boolean
     error: string | null
     lastFetched: number | null
+
     refetch: () => Promise<void>
 }
 
@@ -49,20 +48,18 @@ function mapCustomer(c: OdooCustomer): Customer {
     }
 }
 
-export function usePosData(): PosDataState {
-    const { isAuthenticated } = useAuth()
-    const { isOnline } = useNetworkStatus()
-    const [products, setProducts] = useState<Product[]>([])
-    const [customers, setCustomers] = useState<Customer[]>([])
-    const [isLoading, setIsLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
-    const [lastFetched, setLastFetched] = useState<number | null>(null)
+export const usePosData = create<PosDataState>((set, get) => ({
+    products: [],
+    customers: [],
+    isLoading: false,
+    error: null,
+    lastFetched: null,
 
-    const refetch = useCallback(async () => {
-        if (!isAuthenticated || !isOnline) return
+    refetch: async () => {
+        const { isLoading } = get()
+        if (isLoading) return // Jangan fetch ulang saat masih loading
 
-        setIsLoading(true)
-        setError(null)
+        set({ isLoading: true, error: null })
 
         try {
             const [prodResult, custResult] = await Promise.all([
@@ -70,40 +67,29 @@ export function usePosData(): PosDataState {
                 fetchCustomers(),
             ])
 
+            const updates: Partial<PosDataState> = {}
+
             if (prodResult.ok && prodResult.data) {
-                setProducts(prodResult.data.map(mapProduct))
-            } else {
-                setError(prodResult.error || "Gagal fetch produk")
+                updates.products = prodResult.data.map(mapProduct)
+            } else if (prodResult.error) {
+                updates.error = prodResult.error
             }
 
             if (custResult.ok && custResult.data) {
-                setCustomers(custResult.data.map(mapCustomer))
+                updates.customers = custResult.data.map(mapCustomer)
             }
-            // Customer gagal tidak blocking — gunakan empty list
 
-            setLastFetched(Date.now())
+            updates.lastFetched = Date.now()
+            updates.isLoading = false
+            set(updates)
         } catch (e) {
-            setError(
-                e instanceof Error ? e.message : "Gagal memuat data"
-            )
-        } finally {
-            setIsLoading(false)
+            set({
+                isLoading: false,
+                error:
+                    e instanceof Error
+                        ? e.message
+                        : "Gagal memuat data",
+            })
         }
-    }, [isAuthenticated, isOnline])
-
-    // Auto-fetch on mount and when auth/online changes
-    useEffect(() => {
-        if (isAuthenticated && isOnline) {
-            refetch()
-        }
-    }, [isAuthenticated, isOnline, refetch])
-
-    return {
-        products,
-        customers,
-        isLoading,
-        error,
-        lastFetched,
-        refetch,
-    }
-}
+    },
+}))
