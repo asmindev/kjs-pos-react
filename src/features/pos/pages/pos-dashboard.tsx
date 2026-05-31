@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { BarcodeInput } from "@/features/pos/components/barcode-input"
 import { ProductGrid } from "@/features/pos/components/product-grid"
 import { CartSidebar } from "@/features/pos/components/cart-sidebar"
-import { CustomerSelect } from "@/features/pos/components/customer-select"
+import { CustomerModal } from "@/features/pos/components/customer-modal"
 import { PromoInput } from "@/features/pos/components/promo-input"
 import { PaymentModal } from "@/features/pos/components/payment-modal"
 import { usePosState } from "@/features/pos/hooks/use-pos-state"
@@ -17,6 +17,8 @@ import { Card } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Printer, Loader2 } from "lucide-react"
 import { usePosData } from "@/features/pos/hooks/use-pos-data"
+import { useDebounce } from "@/shared/hooks/use-debounce"
+import { Button } from "@/components/ui/button"
 
 const categories = [
     "Semua",
@@ -31,6 +33,7 @@ const categories = [
 
 export default function POSDashboard() {
     const [searchQuery, setSearchQuery] = useState("")
+    const debouncedSearch = useDebounce(searchQuery, 150)
     const [activeCategory, setActiveCategory] = useState("Semua")
     const [showMore, setShowMore] = useState(false)
     const { setCustomer } = usePosState()
@@ -43,14 +46,13 @@ export default function POSDashboard() {
     }, [refetch])
 
     return (
-        <div className="flex h-full flex-col gap-3">
+        <div className="flex h-full flex-col">
             {/* Top Bar */}
-            <div className="flex shrink-0 items-center gap-3">
-                <div className="flex-1">
+            <div className="flex shrink-0 items-center gap-3 py-0.5">
+                <div className="flex-1 pl-2">
                     <BarcodeInput />
                 </div>
-                <CustomerSelect />
-                <PromoInput />
+                <CustomerModal />
             </div>
 
             {/* Category Input Group */}
@@ -135,7 +137,10 @@ export default function POSDashboard() {
 
             {/* Main: Product Grid + Cart Sidebar */}
             <div className="flex flex-1 gap-3 overflow-hidden">
-                <Card size="sm" className="flex flex-1 flex-col overflow-hidden">
+                <Card
+                    size="sm"
+                    className="flex flex-1 flex-col overflow-hidden bg-red-500 p-0 data-[size=sm]:py-0"
+                >
                     {isLoading ? (
                         <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
                             <Loader2 className="size-8 animate-spin text-primary" />
@@ -151,18 +156,18 @@ export default function POSDashboard() {
                             <p className="text-xs text-muted-foreground">
                                 {error}
                             </p>
-                            <button
+                            <Button
                                 type="button"
-                                onClick={refetch}
+                                onClick={() => refetch()}
                                 className="text-xs text-primary hover:underline"
                             >
                                 Coba lagi
-                            </button>
+                            </Button>
                         </div>
                     ) : (
                         <ProductGrid
                             products={products}
-                            searchQuery={searchQuery}
+                            searchQuery={debouncedSearch}
                         />
                     )}
                 </Card>
@@ -172,7 +177,7 @@ export default function POSDashboard() {
             </div>
 
             {/* Footer: Shortcuts */}
-            <div className="flex shrink-0 items-center gap-2 text-[10px] text-muted-foreground">
+            <div className="flex shrink-0 items-center gap-2 border-t text-[10px] text-muted-foreground">
                 <span className="text-xs font-semibold tracking-wider uppercase">
                     Shortcut
                 </span>

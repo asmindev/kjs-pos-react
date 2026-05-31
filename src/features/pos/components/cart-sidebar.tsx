@@ -1,3 +1,4 @@
+import { useMemo, startTransition } from "react"
 import { useCart } from "@/features/pos/hooks/use-cart"
 import { usePosState } from "@/features/pos/hooks/use-pos-state"
 import {
@@ -10,18 +11,28 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { CustomerSelect } from "@/features/pos/components/customer-select"
+import { CustomerModal } from "@/features/pos/components/customer-modal"
 import { PromoInput } from "@/features/pos/components/promo-input"
 import { ShoppingCart, Minus, Plus, X, Banknote } from "lucide-react"
+import { calculateSubtotal } from "@/features/pos/domain/services/pricing-service"
 
 export function CartSidebar() {
-    const { items, removeItem, updateQuantity, getSubtotal, getTotal } =
-        useCart()
-    const { startPayment, phase } = usePosState()
+    const items = useCart((s) => s.items)
+    const removeItem = useCart((s) => s.removeItem)
+    const updateQuantity = useCart((s) => s.updateQuantity)
+    const phase = usePosState((s) => s.phase)
+    const startPayment = usePosState((s) => s.startPayment)
 
-    const subtotal = getSubtotal()
-    const total = getTotal()
-    const itemCount = items.reduce((sum, i) => sum + i.quantity, 0)
+    const discount = useCart((s) => s.discount)
+    const subtotal = useMemo(() => calculateSubtotal(items), [items])
+    const total = useMemo(
+        () => Math.max(subtotal - discount, 0),
+        [subtotal, discount]
+    )
+    const itemCount = useMemo(
+        () => items.reduce((sum, i) => sum + i.quantity, 0),
+        [items]
+    )
     const isPaymentLocked = ["payment", "processing"].includes(phase)
 
     return (
@@ -139,7 +150,7 @@ export function CartSidebar() {
 
                         <div className="flex w-full gap-2">
                             <div className="flex-1">
-                                <CustomerSelect />
+                                <CustomerModal />
                             </div>
                             <div className="w-24">
                                 <PromoInput />
@@ -148,7 +159,7 @@ export function CartSidebar() {
 
                         <Button
                             className="h-11 w-full text-sm font-bold tracking-wide"
-                            onClick={startPayment}
+                            onClick={() => startTransition(() => startPayment())}
                             disabled={items.length === 0 || isPaymentLocked}
                         >
                             <Banknote className="size-4" />

@@ -3,7 +3,8 @@ import { useCart } from "@/features/pos/hooks/use-cart"
 import { Tag } from "lucide-react"
 
 export function PromoInput() {
-    const { discount, setDiscount } = useCart()
+    const discount = useCart((s) => s.discount)
+    const setDiscount = useCart((s) => s.setDiscount)
 
     return (
         <div className="relative">

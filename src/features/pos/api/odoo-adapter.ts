@@ -97,6 +97,8 @@ export type OdooCustomer = {
     phone?: string
     mobile?: string
     email?: string
+    street?: string
+    city?: string
 }
 
 export async function fetchCustomers(

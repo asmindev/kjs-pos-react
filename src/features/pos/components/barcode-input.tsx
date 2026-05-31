@@ -4,7 +4,9 @@ import { usePosState } from "@/features/pos/hooks/use-pos-state"
 import { Scan } from "lucide-react"
 
 export function BarcodeInput() {
-    const { startScanning, stopScanning, phase } = usePosState()
+    const phase = usePosState((s) => s.phase)
+    const startScanning = usePosState((s) => s.startScanning)
+    const stopScanning = usePosState((s) => s.stopScanning)
     const isScanning = phase === "scanning"
 
     return (

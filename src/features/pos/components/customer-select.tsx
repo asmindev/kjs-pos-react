@@ -1,32 +1,53 @@
-import { useState } from "react"
-import { Check, ChevronsUpDown, User, X } from "lucide-react"
-
+import { useState, memo, useMemo, useRef, useEffect } from "react"
+import { Check, ChevronsUpDown, User, X, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import {
-    Command,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-    CommandList,
-} from "@/components/ui/command"
 import {
     Popover,
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { usePosState } from "@/features/pos/hooks/use-pos-state"
 import { usePosData } from "@/features/pos/hooks/use-pos-data"
 
-type CustomerSelectProps = {
-    className?: string
-}
+type CustomerSelectProps = { className?: string }
 
-export function CustomerSelect({ className }: CustomerSelectProps) {
+const MAX_VISIBLE = 50
+
+export const CustomerSelect = memo(function CustomerSelect({
+    className,
+}: CustomerSelectProps) {
     const [open, setOpen] = useState(false)
-    const { customer: selected, setCustomer } = usePosState()
-    const { customers } = usePosData()
+    const [search, setSearch] = useState("")
+    const inputRef = useRef<HTMLInputElement>(null)
+
+    const customer = usePosState((s) => s.customer)
+    const setCustomer = usePosState((s) => s.setCustomer)
+    const allCustomers = usePosData((s) => s.customers)
+
+    // Filter in-memory — O(n) tapi untuk 2000 item <1ms
+    const filtered = useMemo(() => {
+        if (!search) return allCustomers
+        const q = search.toLowerCase()
+        return allCustomers.filter(
+            (c) =>
+                c.name.toLowerCase().includes(q) ||
+                (c.phone || "").includes(q)
+        )
+    }, [allCustomers, search])
+
+    const visible = filtered.slice(0, MAX_VISIBLE)
+    const hasMore = filtered.length > MAX_VISIBLE
+
+    // Focus input saat popover terbuka
+    useEffect(() => {
+        if (open) {
+            setTimeout(() => inputRef.current?.focus(), 50)
+        } else {
+            setSearch("")
+        }
+    }, [open])
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
@@ -40,12 +61,12 @@ export function CustomerSelect({ className }: CustomerSelectProps) {
                         className
                     )}
                 >
-                    {selected ? (
+                    {customer ? (
                         <div className="flex w-full items-center justify-between gap-2">
                             <div className="flex items-center gap-2 truncate">
                                 <User className="size-3 shrink-0" />
                                 <span className="truncate">
-                                    {selected.name}
+                                    {customer.name}
                                 </span>
                             </div>
                             <div
@@ -64,66 +85,90 @@ export function CustomerSelect({ className }: CustomerSelectProps) {
                         <div className="flex items-center gap-2 truncate text-muted-foreground">
                             <User className="size-3 shrink-0" />
                             <span>
-                                {customers.length === 0
+                                {allCustomers.length === 0
                                     ? "Memuat..."
                                     : "Pilih Customer..."}
                             </span>
                         </div>
                     )}
-                    {!selected && (
+                    {!customer && (
                         <ChevronsUpDown className="ml-2 size-3 shrink-0 opacity-50" />
                     )}
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[220px] p-0" align="start">
-                <Command>
-                    <CommandInput
+            <PopoverContent
+                className="w-[260px] p-0"
+                align="start"
+                sideOffset={4}
+            >
+                {/* Search input */}
+                <div className="flex items-center border-b px-3 py-2">
+                    <Search className="mr-2 size-3.5 shrink-0 text-muted-foreground" />
+                    <input
+                        ref={inputRef}
+                        type="text"
                         placeholder="Cari nama atau no. HP..."
-                        className="h-9 text-xs"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground/60"
+                        onKeyDown={(e) => {
+                            if (e.key === "Escape") setOpen(false)
+                        }}
                     />
-                    <CommandList>
-                        <CommandEmpty className="py-2 text-center text-xs text-muted-foreground">
-                            Tidak ditemukan.
-                        </CommandEmpty>
-                        <CommandGroup>
-                            {customers.map((c) => (
-                                <CommandItem
-                                    key={c.id}
-                                    value={`${c.name} ${c.phone || ""}`}
-                                    onSelect={() => {
-                                        const newValue =
-                                            selected?.id === c.id
-                                                ? null
-                                                : c
-                                        setCustomer(newValue)
-                                        setOpen(false)
-                                    }}
-                                    className="flex items-center justify-between"
-                                >
-                                    <div className="flex flex-col gap-0.5">
-                                        <span className="text-xs font-medium">
-                                            {c.name}
-                                        </span>
-                                        {c.phone && (
-                                            <span className="text-[10px] text-muted-foreground">
-                                                {c.phone}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <Check
+                </div>
+
+                {/* Results */}
+                <ScrollArea className="max-h-64">
+                    {visible.length === 0 ? (
+                        <p className="px-3 py-6 text-center text-xs text-muted-foreground">
+                            Tidak ditemukan
+                        </p>
+                    ) : (
+                        <ul className="p-1">
+                            {visible.map((c) => (
+                                <li key={c.id}>
+                                    <button
+                                        type="button"
                                         className={cn(
-                                            "mr-2 size-4",
-                                            selected?.id === c.id
-                                                ? "opacity-100"
-                                                : "opacity-0"
+                                            "flex w-full items-center justify-between rounded-sm px-3 py-2 text-left text-xs transition-colors hover:bg-muted",
+                                            customer?.id === c.id &&
+                                                "bg-primary/10"
                                         )}
-                                    />
-                                </CommandItem>
+                                        onClick={() => {
+                                            setCustomer(
+                                                customer?.id === c.id
+                                                    ? null
+                                                    : c
+                                            )
+                                            setOpen(false)
+                                        }}
+                                    >
+                                        <div className="flex flex-col gap-0.5">
+                                            <span className="font-medium">
+                                                {c.name}
+                                            </span>
+                                            {c.phone && (
+                                                <span className="text-[10px] text-muted-foreground">
+                                                    {c.phone}
+                                                </span>
+                                            )}
+                                        </div>
+                                        {customer?.id === c.id && (
+                                            <Check className="size-4" />
+                                        )}
+                                    </button>
+                                </li>
                             ))}
-                        </CommandGroup>
-                    </CommandList>
-                </Command>
+                            {hasMore && (
+                                <li className="px-3 py-2 text-center text-[10px] text-muted-foreground">
+                                    +{filtered.length - MAX_VISIBLE} lainnya
+                                    — ketik untuk mencari
+                                </li>
+                            )}
+                        </ul>
+                    )}
+                </ScrollArea>
             </PopoverContent>
         </Popover>
     )
-}
+})

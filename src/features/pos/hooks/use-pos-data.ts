@@ -18,6 +18,9 @@ type Customer = {
     id: string
     name: string
     phone?: string
+    email?: string
+    street?: string
+    city?: string
 }
 
 type PosDataState = {
@@ -27,8 +30,11 @@ type PosDataState = {
     error: string | null
     lastFetched: number | null
 
-    refetch: () => Promise<void>
+    refetch: (force?: boolean) => Promise<void>
 }
+
+const CACHE_KEY = "pos_data_cache_v2"
+const CACHE_TTL = 5 * 60 * 1000 // 5 menit
 
 function mapProduct(p: OdooProduct): Product {
     return {
@@ -45,6 +51,32 @@ function mapCustomer(c: OdooCustomer): Customer {
         id: String(c.id),
         name: c.name,
         phone: c.phone || c.mobile || undefined,
+        email: c.email || undefined,
+        street: c.street || undefined,
+        city: c.city || undefined,
+    }
+}
+
+function loadFromCache(): { products: Product[]; customers: Customer[] } | null {
+    try {
+        const raw = localStorage.getItem(CACHE_KEY)
+        if (!raw) return null
+        const cached = JSON.parse(raw)
+        if (Date.now() - cached.timestamp > CACHE_TTL) return null
+        return { products: cached.products, customers: cached.customers }
+    } catch {
+        return null
+    }
+}
+
+function saveToCache(products: Product[], customers: Customer[]) {
+    try {
+        localStorage.setItem(
+            CACHE_KEY,
+            JSON.stringify({ products, customers, timestamp: Date.now() })
+        )
+    } catch {
+        // localStorage penuh — abaikan
     }
 }
 
@@ -55,9 +87,23 @@ export const usePosData = create<PosDataState>((set, get) => ({
     error: null,
     lastFetched: null,
 
-    refetch: async () => {
+    refetch: async (force = false) => {
         const { isLoading } = get()
-        if (isLoading) return // Jangan fetch ulang saat masih loading
+        if (isLoading) return
+
+        // Coba load dari cache dulu (kecuali force)
+        if (!force) {
+            const cached = loadFromCache()
+            if (cached) {
+                set({
+                    products: cached.products,
+                    customers: cached.customers,
+                    isLoading: false,
+                    lastFetched: Date.now(),
+                })
+                return
+            }
+        }
 
         set({ isLoading: true, error: null })
 
@@ -82,6 +128,12 @@ export const usePosData = create<PosDataState>((set, get) => ({
             updates.lastFetched = Date.now()
             updates.isLoading = false
             set(updates)
+
+            // Simpan ke cache
+            const { products, customers } = get()
+            if (products.length > 0 || customers.length > 0) {
+                saveToCache(products, customers)
+            }
         } catch (e) {
             set({
                 isLoading: false,
