@@ -137,16 +137,16 @@ export default function POSDashboard() {
     return (
         <div className="flex h-full flex-col gap-3">
             {/* Top Bar */}
-            <div className="flex items-center gap-3">
+            <div className="flex shrink-0 items-center gap-3">
                 <div className="flex-1">
                     <BarcodeInput />
                 </div>
-                <CustomerSelect onSelect={setCustomer} />
+                <CustomerSelect />
                 <PromoInput />
             </div>
 
             {/* Category Input Group */}
-            <InputGroup className="w-full">
+            <InputGroup className="w-full shrink-0">
                 <InputGroupAddon className="relative gap-1">
                     {(() => {
                         const MAX_VISIBLE = 15
@@ -225,8 +225,6 @@ export default function POSDashboard() {
                 </div>
             </InputGroup>
 
-            <Separator />
-
             {/* Main: Product Grid + Cart Sidebar */}
             <div className="flex flex-1 gap-3 overflow-hidden">
                 <Card size="sm" className="flex-1 overflow-hidden">
@@ -241,7 +239,7 @@ export default function POSDashboard() {
             </div>
 
             {/* Footer: Shortcuts */}
-            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+            <div className="flex shrink-0 items-center gap-2 text-[10px] text-muted-foreground">
                 <span className="text-xs font-semibold tracking-wider uppercase">
                     Shortcut
                 </span>
@@ -254,14 +252,16 @@ export default function POSDashboard() {
                     <Badge
                         key={key}
                         variant="outline"
-                        className="flex items-center gap-1 font-mono"
+                        className="flex items-center justify-between gap-1 font-mono"
                     >
                         <span className="text-[9px]">{key}</span>
                         <span className="font-sans">{label}</span>
                     </Badge>
                 ))}
-                <Printer className="size-3" />
-                <span className="ml-auto">EPSON TM-T82 siap</span>
+                <div className="ml-auto flex items-center gap-1 pr-2">
+                    <Printer className="size-3" />
+                    <span className="">EPSON TM-T82 siap</span>
+                </div>
             </div>
 
             <PaymentModal />

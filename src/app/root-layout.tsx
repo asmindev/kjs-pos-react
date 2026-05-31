@@ -5,9 +5,9 @@ export function RootLayout() {
     const { isOnline } = useNetworkStatus()
 
     return (
-        <div className="min-h-svh text-foreground">
+        <div className="flex h-svh flex-col text-foreground">
             {/* Navbar */}
-            <header className="sticky top-0 z-20 border-b border-border/70 bg-background/80 backdrop-blur">
+            <header className="shrink-0 z-20 border-b border-border/70 bg-background/80 backdrop-blur">
                 <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
                     <div>
                         <p className="font-heading text-lg font-semibold tracking-tight">
@@ -26,8 +26,8 @@ export function RootLayout() {
                 </div>
             </header>
 
-            {/* Main Content — full height, no sidebar */}
-            <main className="w-full">
+            {/* Main Content — flex-1 to fill remaining height, overflow-auto for scrolling child pages if needed */}
+            <main className="flex-1 overflow-auto w-full">
                 <Outlet />
             </main>
         </div>

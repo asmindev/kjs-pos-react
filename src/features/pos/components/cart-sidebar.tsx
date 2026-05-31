@@ -1,6 +1,12 @@
 import { useCart } from "@/features/pos/hooks/use-cart"
 import { usePosState } from "@/features/pos/hooks/use-pos-state"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+    Card,
+    CardContent,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
@@ -142,7 +148,7 @@ export function CartSidebar() {
                         </div>
 
                         <Button
-                            className="w-full h-11 text-sm font-bold tracking-wide shadow-lg shadow-emerald-500/25"
+                            className="h-11 w-full text-sm font-bold tracking-wide"
                             onClick={startPayment}
                             disabled={items.length === 0 || isPaymentLocked}
                         >
