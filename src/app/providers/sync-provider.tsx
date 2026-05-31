@@ -1,13 +1,6 @@
-import { createContext, useContext, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 
-type SyncState = {
-  isSyncing: boolean
-  lastSyncedAt: string | null
-  startSync: () => void
-  finishSync: () => void
-}
-
-const SyncContext = createContext<SyncState | null>(null)
+import { SyncContext, type SyncState } from "./sync-context.ts"
 
 type SyncProviderProps = {
   children: React.ReactNode
@@ -31,14 +24,4 @@ export function SyncProvider({ children }: SyncProviderProps) {
   )
 
   return <SyncContext.Provider value={value}>{children}</SyncContext.Provider>
-}
-
-export function useSyncContext() {
-  const context = useContext(SyncContext)
-
-  if (!context) {
-    throw new Error("useSyncContext must be used within SyncProvider")
-  }
-
-  return context
 }

@@ -9,7 +9,7 @@ type AppShellProps = {
 
 export function AppShell({ children }: AppShellProps) {
   return (
-    <div className="min-h-svh bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_40%),linear-gradient(180deg,_var(--background),_color-mix(in_oklch,var(--background),var(--muted)_8%))] text-foreground">
+    <div className="min-h-svh bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_40%),linear-gradient(180deg,var(--background),color-mix(in_oklch,var(--background),var(--muted)_8%))] text-foreground">
       <Navbar />
       <div className="mx-auto grid min-h-[calc(100svh-4rem)] max-w-7xl gap-6 px-4 py-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
         <Sidebar />
