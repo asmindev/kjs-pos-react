@@ -10,7 +10,6 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { CustomerSelect } from "@/features/pos/components/customer-select"
 import { PromoInput } from "@/features/pos/components/promo-input"
 import { ShoppingCart, Minus, Plus, X, Banknote } from "lucide-react"
@@ -51,12 +50,12 @@ export function CartSidebar() {
                 </CardContent>
             ) : (
                 <>
-                    <ScrollArea className="flex-1">
+                    <div className="flex-1 overflow-y-auto overflow-x-hidden">
                         <CardContent className="space-y-1 pb-0">
                             {items.map((item) => (
                                 <div
                                     key={item.product.id}
-                                    className="flex items-center gap-2 px-2 py-2 transition-colors hover:bg-muted/50"
+                                    className="flex w-full items-center gap-2 px-2 py-2 transition-colors hover:bg-muted/50"
                                 >
                                     <div className="min-w-0 flex-1">
                                         <p className="truncate text-xs font-semibold">
@@ -69,7 +68,7 @@ export function CartSidebar() {
                                             )}
                                         </p>
                                     </div>
-                                    <div className="flex items-center gap-0.5">
+                                    <div className="flex shrink-0 items-center gap-0.5">
                                         <Button
                                             variant="ghost"
                                             size="icon-xs"
@@ -107,14 +106,14 @@ export function CartSidebar() {
                                             removeItem(item.product.id)
                                         }
                                         disabled={isPaymentLocked}
-                                        className="text-muted-foreground hover:text-destructive"
+                                        className="shrink-0 text-muted-foreground hover:text-destructive"
                                     >
                                         <X className="size-3" />
                                     </Button>
                                 </div>
                             ))}
                         </CardContent>
-                    </ScrollArea>
+                    </div>
 
                     <CardFooter className="flex-col gap-3">
                         <Separator />

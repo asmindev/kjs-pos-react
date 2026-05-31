@@ -15,95 +15,8 @@ import {
 } from "@/components/ui/input-group"
 import { Card } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Printer } from "lucide-react"
-import type { Product } from "@/features/pos/domain/models/product-model"
-
-const mockProducts: Product[] = [
-    {
-        id: "1",
-        barcode: "8991234567890",
-        name: "Indomie Goreng",
-        price: 3500,
-        stock: 99,
-    },
-    {
-        id: "2",
-        barcode: "8991234567891",
-        name: "Aqua 600ml",
-        price: 3000,
-        stock: 150,
-    },
-    {
-        id: "3",
-        barcode: "8991234567892",
-        name: "Kopi Kapal Api",
-        price: 1500,
-        stock: 200,
-    },
-    {
-        id: "4",
-        barcode: "8991234567893",
-        name: "Rokok Sampoerna",
-        price: 25000,
-        stock: 50,
-    },
-    {
-        id: "5",
-        barcode: "8991234567894",
-        name: "Teh Botol Sosro",
-        price: 5000,
-        stock: 80,
-    },
-    {
-        id: "6",
-        barcode: "8991234567895",
-        name: "Chitato 50g",
-        price: 12000,
-        stock: 60,
-    },
-    {
-        id: "7",
-        barcode: "8991234567896",
-        name: "Sari Roti",
-        price: 8000,
-        stock: 40,
-    },
-    {
-        id: "8",
-        barcode: "8991234567897",
-        name: "Beras 5kg",
-        price: 65000,
-        stock: 30,
-    },
-    {
-        id: "9",
-        barcode: "8991234567898",
-        name: "Minyak Goreng 2L",
-        price: 36000,
-        stock: 45,
-    },
-    {
-        id: "10",
-        barcode: "8991234567899",
-        name: "Gula Pasir 1kg",
-        price: 15000,
-        stock: 55,
-    },
-    {
-        id: "11",
-        barcode: "8991234567900",
-        name: "Telur 1kg",
-        price: 28000,
-        stock: 35,
-    },
-    {
-        id: "12",
-        barcode: "8991234567901",
-        name: "Susu Ultra 1L",
-        price: 18000,
-        stock: 70,
-    },
-]
+import { Printer, Loader2 } from "lucide-react"
+import { usePosData } from "@/features/pos/hooks/use-pos-data"
 
 const categories = [
     "Semua",
@@ -112,18 +25,7 @@ const categories = [
     "Rokok",
     "Sembako",
     "Snack",
-    "Lainnya",
     "Favorit",
-    "Terbaru",
-    "Promo",
-    "Habis Terjual",
-    "Stok Menipis",
-    "Custom",
-    "Lainnya",
-    "Lainnya",
-    "Lainnya",
-    "Lainnya",
-    "Lainnya",
     "Lainnya",
 ]
 
@@ -133,6 +35,7 @@ export default function POSDashboard() {
     const [showMore, setShowMore] = useState(false)
     const { setCustomer } = usePosState()
     const { isOnline, pendingCount } = useSync()
+    const { products, isLoading, error, refetch } = usePosData()
 
     return (
         <div className="flex h-full flex-col gap-3">
@@ -227,11 +130,36 @@ export default function POSDashboard() {
 
             {/* Main: Product Grid + Cart Sidebar */}
             <div className="flex flex-1 gap-3 overflow-hidden">
-                <Card size="sm" className="flex-1 overflow-hidden">
-                    <ProductGrid
-                        products={mockProducts}
-                        searchQuery={searchQuery}
-                    />
+                <Card size="sm" className="flex flex-1 flex-col overflow-hidden">
+                    {isLoading ? (
+                        <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
+                            <Loader2 className="size-8 animate-spin text-primary" />
+                            <p className="text-sm font-medium text-muted-foreground">
+                                Memuat produk...
+                            </p>
+                        </div>
+                    ) : error ? (
+                        <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
+                            <p className="text-sm font-medium text-destructive">
+                                Gagal memuat data
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                {error}
+                            </p>
+                            <button
+                                type="button"
+                                onClick={refetch}
+                                className="text-xs text-primary hover:underline"
+                            >
+                                Coba lagi
+                            </button>
+                        </div>
+                    ) : (
+                        <ProductGrid
+                            products={products}
+                            searchQuery={searchQuery}
+                        />
+                    )}
                 </Card>
                 <div className="w-80 shrink-0">
                     <CartSidebar />

@@ -1,26 +1,69 @@
 import type { Product } from "@/features/pos/domain/models/product-model"
 import { useCart } from "@/features/pos/hooks/use-cart"
 import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Package, PackageOpen } from "lucide-react"
-
-const accentColors = [
-    "from-orange-500/20 to-orange-500/5 text-orange-400",
-    "from-sky-500/20 to-sky-500/5 text-sky-400",
-    "from-slate-500/20 to-slate-500/5 text-slate-400",
-    "from-red-500/20 to-red-500/5 text-red-400",
-    "from-emerald-500/20 to-emerald-500/5 text-emerald-400",
-    "from-amber-500/20 to-amber-500/5 text-amber-400",
-    "from-violet-500/20 to-violet-500/5 text-violet-400",
-    "from-rose-500/20 to-rose-500/5 text-rose-400",
-    "from-cyan-500/20 to-cyan-500/5 text-cyan-400",
-    "from-lime-500/20 to-lime-500/5 text-lime-400",
-    "from-pink-500/20 to-pink-500/5 text-pink-400",
-    "from-blue-500/20 to-blue-500/5 text-blue-400",
-]
 
 type ProductGridProps = {
     products: Product[]
     searchQuery: string
+}
+
+function ProductCard({
+    product,
+    addItem,
+}: {
+    product: Product
+    addItem: (product: Product) => void
+}) {
+    return (
+        <Card
+            key={product.id}
+            className="group relative cursor-pointer overflow-hidden border-border/40 bg-card transition-all duration-300 hover:-translate-y-[2px] hover:border-primary/50 hover:shadow-lg active:scale-[0.98]"
+            onClick={() => addItem(product)}
+        >
+            <CardContent className="flex flex-col gap-3 p-4">
+                <div className="flex items-start justify-between gap-2">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center">
+                        <Package className="size-5" />
+                    </div>
+                    {product.stock <= 0 ? (
+                        <Badge
+                            variant="destructive"
+                            className="px-1.5 py-0 text-[9px]"
+                        >
+                            Habis
+                        </Badge>
+                    ) : product.stock <= 5 ? (
+                        <Badge
+                            variant="outline"
+                            className="border-amber-500/30 px-1.5 py-0 text-[9px] text-amber-500"
+                        >
+                            Sisa {product.stock}
+                        </Badge>
+                    ) : null}
+                </div>
+
+                <div className="mt-1 min-w-0 space-y-1">
+                    <p
+                        className="text-xs leading-tight font-semibold"
+                        title={product.name}
+                    >
+                        {product.name}
+                    </p>
+                    <p className="font-mono text-[10px] text-muted-foreground/60">
+                        {product.barcode}
+                    </p>
+                </div>
+
+                <div className="mt-auto flex items-center justify-between border-t border-border/40 pt-2">
+                    <span className="text-sm font-bold text-primary tabular-nums">
+                        Rp {product.price.toLocaleString("id-ID")}
+                    </span>
+                </div>
+            </CardContent>
+        </Card>
+    )
 }
 
 export function ProductGrid({ products, searchQuery }: ProductGridProps) {
@@ -53,37 +96,20 @@ export function ProductGrid({ products, searchQuery }: ProductGridProps) {
     }
 
     return (
-        <div className="grid grid-cols-2 gap-2 overflow-auto p-3 sm:grid-cols-3 lg:grid-cols-4">
-            {filtered.map((product, i) => {
-                const accent = accentColors[i % accentColors.length]
-
-                return (
-                    <Card
-                        key={product.id}
-                        className="group cursor-pointer border-border/60 transition-all hover:border-primary/40 hover:bg-accent/5 active:scale-[0.98]"
-                        onClick={() => addItem(product)}
-                    >
-                        <CardContent className="flex flex-col items-center gap-2 p-4 text-center">
-                            <div
-                                className={`flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br ${accent}`}
-                            >
-                                <Package className="size-5" />
-                            </div>
-                            <div>
-                                <p className="text-xs font-semibold leading-tight">
-                                    {product.name}
-                                </p>
-                                <p className="mt-0.5 text-[10px] text-muted-foreground/50">
-                                    {product.barcode}
-                                </p>
-                                <p className="mt-1 text-sm font-bold">
-                                    Rp {product.price.toLocaleString("id-ID")}
-                                </p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                )
-            })}
+        <div className="flex h-full flex-col overflow-hidden">
+            <div className="flex-1 overflow-auto p-3">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+                    {filtered.map((product) => {
+                        return (
+                            <ProductCard
+                                key={product.id}
+                                product={product}
+                                addItem={addItem}
+                            />
+                        )
+                    })}
+                </div>
+            </div>
         </div>
     )
 }

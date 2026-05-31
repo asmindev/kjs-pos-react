@@ -1,15 +1,14 @@
 /**
  * Odoo 10 REST API Adapter
  *
- * Handles communication with Odoo backend.
- * All calls go through this adapter so we can:
- * - Swap endpoints easily
- * - Handle auth centrally
- * - Queue requests when offline
+ * Semua komunikasi dengan Odoo backend via pos_rest_api module.
+ * JWT token di-attach otomatis dari auth store.
  */
 
-// TODO: Move to environment config
-const ODOO_BASE_URL = import.meta.env.VITE_ODOO_URL ?? "http://localhost:8069"
+import { useAuth } from "@/features/pos/hooks/use-auth"
+
+const ODOO_BASE_URL =
+    import.meta.env.VITE_ODOO_URL ?? "http://localhost:8001"
 
 type OdooResponse<T> = {
     ok: boolean
@@ -21,13 +20,25 @@ async function odooFetch<T>(
     path: string,
     options?: RequestInit
 ): Promise<OdooResponse<T>> {
+    const { getAuthHeader } = useAuth.getState()
+    const authHeader = getAuthHeader()
+
     try {
+        const headers: Record<string, string> = {
+            ...(options?.headers as Record<string, string>),
+        }
+        // Jangan set Content-Type untuk GET — Odoo coba parse body kosong
+        if (options?.method && options.method !== "GET") {
+            headers["Content-Type"] = "application/json"
+        }
+
+        if (authHeader) {
+            headers["Authorization"] = authHeader
+        }
+
         const response = await fetch(`${ODOO_BASE_URL}${path}`, {
-            headers: {
-                "Content-Type": "application/json",
-                ...options?.headers,
-            },
             ...options,
+            headers,
         })
 
         if (!response.ok) {
@@ -51,18 +62,31 @@ export type OdooProduct = {
     id: number
     barcode: string
     name: string
-    list_price: number
-    qty_available: number
+    price: number
+    stock: number
+    uom?: string
 }
 
 export async function fetchProducts(): Promise<OdooResponse<OdooProduct[]>> {
-    return odooFetch<OdooProduct[]>("/api/products")
+    const result = await odooFetch<{ products: OdooProduct[] }>(
+        "/api/products"
+    )
+    if (result.ok && result.data) {
+        return { ok: true, data: result.data.products }
+    }
+    return { ok: false, error: result.error }
 }
 
 export async function fetchProductByBarcode(
     barcode: string
 ): Promise<OdooResponse<OdooProduct>> {
-    return odooFetch<OdooProduct>(`/api/products/barcode/${barcode}`)
+    const result = await odooFetch<{ product: OdooProduct }>(
+        `/api/products/barcode/${barcode}`
+    )
+    if (result.ok && result.data) {
+        return { ok: true, data: result.data.product }
+    }
+    return { ok: false, error: result.error }
 }
 
 // --- Customers ---
@@ -79,7 +103,13 @@ export async function fetchCustomers(
     query?: string
 ): Promise<OdooResponse<OdooCustomer[]>> {
     const params = query ? `?q=${encodeURIComponent(query)}` : ""
-    return odooFetch<OdooCustomer[]>(`/api/customers${params}`)
+    const result = await odooFetch<{ customers: OdooCustomer[] }>(
+        `/api/customers${params}`
+    )
+    if (result.ok && result.data) {
+        return { ok: true, data: result.data.customers }
+    }
+    return { ok: false, error: result.error }
 }
 
 // --- Transactions ---
@@ -112,9 +142,11 @@ export async function createTransaction(
     })
 }
 
-// --- Session / Health ---
+// --- Health ---
 
-export async function checkOdooConnection(): Promise<OdooResponse<{ version: string }>> {
+export async function checkOdooConnection(): Promise<
+    OdooResponse<{ version: string }>
+> {
     return odooFetch("/api/health")
 }
 

@@ -17,26 +17,16 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover"
 import { usePosState } from "@/features/pos/hooks/use-pos-state"
-
-type Customer = {
-    id: string
-    name: string
-    phone?: string
-}
+import { usePosData } from "@/features/pos/hooks/use-pos-data"
 
 type CustomerSelectProps = {
     className?: string
 }
 
-const mockCustomers: Customer[] = [
-    { id: "1", name: "Budi Santoso", phone: "081234567890" },
-    { id: "2", name: "Siti Rahayu", phone: "082345678901" },
-    { id: "3", name: "Pak Joko", phone: "083456789012" },
-]
-
 export function CustomerSelect({ className }: CustomerSelectProps) {
     const [open, setOpen] = useState(false)
     const { customer: selected, setCustomer } = usePosState()
+    const { customers } = usePosData()
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
@@ -45,13 +35,18 @@ export function CustomerSelect({ className }: CustomerSelectProps) {
                     variant="outline"
                     role="combobox"
                     aria-expanded={open}
-                    className={cn("h-8 w-[220px] justify-between px-3 text-xs", className)}
+                    className={cn(
+                        "h-8 w-[220px] justify-between px-3 text-xs",
+                        className
+                    )}
                 >
                     {selected ? (
                         <div className="flex w-full items-center justify-between gap-2">
                             <div className="flex items-center gap-2 truncate">
                                 <User className="size-3 shrink-0" />
-                                <span className="truncate">{selected.name}</span>
+                                <span className="truncate">
+                                    {selected.name}
+                                </span>
                             </div>
                             <div
                                 role="button"
@@ -68,7 +63,11 @@ export function CustomerSelect({ className }: CustomerSelectProps) {
                     ) : (
                         <div className="flex items-center gap-2 truncate text-muted-foreground">
                             <User className="size-3 shrink-0" />
-                            <span>Pilih Customer...</span>
+                            <span>
+                                {customers.length === 0
+                                    ? "Memuat..."
+                                    : "Pilih Customer..."}
+                            </span>
                         </div>
                     )}
                     {!selected && (
@@ -87,13 +86,15 @@ export function CustomerSelect({ className }: CustomerSelectProps) {
                             Tidak ditemukan.
                         </CommandEmpty>
                         <CommandGroup>
-                            {mockCustomers.map((c) => (
+                            {customers.map((c) => (
                                 <CommandItem
                                     key={c.id}
                                     value={`${c.name} ${c.phone || ""}`}
                                     onSelect={() => {
                                         const newValue =
-                                            selected?.id === c.id ? null : c
+                                            selected?.id === c.id
+                                                ? null
+                                                : c
                                         setCustomer(newValue)
                                         setOpen(false)
                                     }}
