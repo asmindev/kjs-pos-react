@@ -4,7 +4,6 @@ import { createRoot } from "react-dom/client"
 import "./styles/globals.css"
 import { PrinterProvider } from "./app/providers/printer-provider"
 import { QueryProvider } from "./app/providers/query-provider"
-import { SyncProvider } from "./app/providers/sync-provider"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Root } from "./app/root"
 
@@ -15,11 +14,9 @@ if (rootElement) {
         <StrictMode>
             <ThemeProvider>
                 <QueryProvider>
-                    <SyncProvider>
-                        <PrinterProvider>
-                            <Root />
-                        </PrinterProvider>
-                    </SyncProvider>
+                    <PrinterProvider>
+                        <Root />
+                    </PrinterProvider>
                 </QueryProvider>
             </ThemeProvider>
         </StrictMode>
