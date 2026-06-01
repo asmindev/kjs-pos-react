@@ -1,4 +1,4 @@
-import { useMemo, memo } from "react"
+import { useMemo, memo, useRef } from "react"
 import type { Product } from "@/features/pos/domain/models/product.model"
 import { useCart } from "@/features/pos/hooks/use-cart"
 import { Card, CardContent } from "@/shared/components/ui/card"
@@ -8,6 +8,9 @@ import { Package, PackageOpen } from "lucide-react"
 type ProductGridProps = {
     products: Product[]
     searchQuery: string
+    hasNextPage: boolean
+    fetchNextPage: () => void
+    isFetchingNextPage: boolean
 }
 
 const ProductCard = memo(function ProductCard({
@@ -74,10 +77,16 @@ const ProductCard = memo(function ProductCard({
 export const ProductGrid = memo(function ProductGrid({
     products,
     searchQuery,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
 }: ProductGridProps) {
     const addItem = useCart((s) => s.addItem)
 
     const filtered = useMemo(() => {
+        // Because pagination is already handled in the backend based on query,
+        // we might not even need client-side filtering here, but we'll keep it
+        // just in case any results slip through or for smaller fast filtering.
         if (!searchQuery) return products
         const q = searchQuery.toLowerCase()
         return products.filter(
@@ -86,6 +95,19 @@ export const ProductGrid = memo(function ProductGrid({
                 p.barcode?.includes(searchQuery)
         )
     }, [products, searchQuery])
+
+    // Intersection Observer for infinite scrolling
+    const observer = useRef<IntersectionObserver | null>(null)
+    const bottomRef = (node: HTMLDivElement | null) => {
+        if (isFetchingNextPage) return
+        if (observer.current) observer.current.disconnect()
+        observer.current = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting && hasNextPage) {
+                fetchNextPage()
+            }
+        })
+        if (node) observer.current.observe(node)
+    }
 
     if (filtered.length === 0) {
         return (
@@ -108,7 +130,7 @@ export const ProductGrid = memo(function ProductGrid({
     return (
         <div className="flex h-full flex-col overflow-hidden bg-muted p-2">
             <div className="flex-1 overflow-auto">
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6 pb-4">
                     {filtered.map((product) => (
                         <ProductCard
                             key={product.id}
@@ -116,6 +138,10 @@ export const ProductGrid = memo(function ProductGrid({
                             onAdd={addItem}
                         />
                     ))}
+                </div>
+                {/* Sentinel for IntersectionObserver */}
+                <div ref={bottomRef} className="h-4 w-full flex items-center justify-center">
+                    {isFetchingNextPage && <span className="text-xs text-muted-foreground animate-pulse">Memuat...</span>}
                 </div>
             </div>
         </div>

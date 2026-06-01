@@ -5,7 +5,7 @@ import { fetchProducts } from "../api/odoo.adapter"
 
 export interface IProductRepository {
     list(): Promise<Product[]>
-    search(query: string, category: string): Promise<Product[]>
+    search(query: string, category: string, limit?: number, offset?: number): Promise<Product[]>
     sync(): Promise<number>
 }
 
@@ -28,7 +28,7 @@ export class ProductRepository implements IProductRepository {
             .filter(Boolean) as Product[]
     }
 
-    async search(query: string, category: string): Promise<Product[]> {
+    async search(query: string, category: string, limit: number = 100, offset: number = 0): Promise<Product[]> {
         let collection = db.cachedProducts.toCollection()
         
         if (query) {
@@ -40,7 +40,15 @@ export class ProductRepository implements IProductRepository {
             )
         }
 
-        const results = await collection.toArray()
+        // Apply category filter before pagination if possible, 
+        // but Dexie filter is executed sequentially.
+        // It's safer to filter first, then limit/offset.
+        if (category !== "Semua") {
+            const currentCollection = collection
+            collection = currentCollection.filter((p) => p.category === category)
+        }
+
+        const results = await collection.offset(offset).limit(limit).toArray()
         
         return results
             .map((p) => {
@@ -54,7 +62,7 @@ export class ProductRepository implements IProductRepository {
                 })
                 return parsed.success ? parsed.data : null
             })
-            .filter((p): p is Product => p !== null && (category === "Semua" || p.category === category))
+            .filter(Boolean) as Product[]
     }
 
     async sync(): Promise<number> {

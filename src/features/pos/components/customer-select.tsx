@@ -13,8 +13,6 @@ import { useCustomers } from "@/features/pos/hooks/use-customers"
 
 type CustomerSelectProps = { className?: string }
 
-const MAX_VISIBLE = 50
-
 export const CustomerSelect = memo(function CustomerSelect({
     className,
 }: CustomerSelectProps) {
@@ -24,20 +22,25 @@ export const CustomerSelect = memo(function CustomerSelect({
 
     const customer = usePosState((s) => s.customer)
     const setCustomer = usePosState((s) => s.setCustomer)
-    const { data: allCustomers = [], isLoading } = useCustomers("")
+    const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } =
+        useCustomers(search)
 
-    // Filter in-memory — O(n) tapi untuk 2000 item <1ms
-    const filtered = useMemo(() => {
-        if (!search) return allCustomers
-        const q = search.toLowerCase()
-        return allCustomers.filter(
-            (c) =>
-                c.name.toLowerCase().includes(q) || (c.phone || "").includes(q)
-        )
-    }, [allCustomers, search])
+    const allCustomers = useMemo(() => {
+        return data?.pages.flatMap((page) => page) ?? []
+    }, [data])
 
-    const visible = filtered.slice(0, MAX_VISIBLE)
-    const hasMore = filtered.length > MAX_VISIBLE
+    // Intersection Observer for infinite scrolling
+    const observer = useRef<IntersectionObserver | null>(null)
+    const bottomRef = (node: HTMLElement | null) => {
+        if (isFetchingNextPage) return
+        if (observer.current) observer.current.disconnect()
+        observer.current = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting && hasNextPage) {
+                fetchNextPage()
+            }
+        })
+        if (node) observer.current.observe(node)
+    }
 
     // Focus input saat popover terbuka
     useEffect(() => {
@@ -112,13 +115,13 @@ export const CustomerSelect = memo(function CustomerSelect({
 
                 {/* Results */}
                 <ScrollArea className="max-h-64">
-                    {visible.length === 0 ? (
+                    {allCustomers.length === 0 && !isLoading ? (
                         <p className="px-3 py-6 text-center text-xs text-muted-foreground">
                             Tidak ditemukan
                         </p>
                     ) : (
                         <ul className="p-1">
-                            {visible.map((c) => (
+                            {allCustomers.map((c) => (
                                 <li key={c.id}>
                                     <button
                                         type="button"
@@ -150,12 +153,13 @@ export const CustomerSelect = memo(function CustomerSelect({
                                     </button>
                                 </li>
                             ))}
-                            {hasMore && (
-                                <li className="px-3 py-2 text-center text-[10px] text-muted-foreground">
-                                    +{filtered.length - MAX_VISIBLE} lainnya —
-                                    ketik untuk mencari
+                            {isFetchingNextPage && (
+                                <li className="animate-pulse px-3 py-2 text-center text-[10px] text-muted-foreground">
+                                    Memuat lebih banyak...
                                 </li>
                             )}
+                            {/* Sentinel for IntersectionObserver */}
+                            <li ref={bottomRef} className="h-1 w-full" />
                         </ul>
                     )}
                 </ScrollArea>

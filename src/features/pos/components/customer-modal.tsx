@@ -24,42 +24,49 @@ import { useCustomers } from "@/features/pos/hooks/use-customers"
 
 type CustomerModalProps = { className?: string }
 
-const PAGE_SIZE = 50
+
 
 export const CustomerModal = memo(function CustomerModal({
     className,
 }: CustomerModalProps) {
     const [open, setOpen] = useState(false)
     const [search, setSearch] = useState("")
-    const [displayCount, setDisplayCount] = useState(PAGE_SIZE)
     const inputRef = useRef<HTMLInputElement>(null)
 
     const customer = usePosState((s) => s.customer)
     const setCustomer = usePosState((s) => s.setCustomer)
-    const { data: allCustomers = [] } = useCustomers("")
+    const {
+        data,
+        isLoading,
+        hasNextPage,
+        fetchNextPage,
+        isFetchingNextPage
+    } = useCustomers(search)
+
+    const allCustomers = useMemo(() => {
+        return data?.pages.flatMap((page) => page) ?? []
+    }, [data])
 
     // Local state for modal selection before confirming
     const [localSelected, setLocalSelected] = useState<typeof customer>(null)
 
-    // Filter in-memory
-    const filtered = useMemo(() => {
-        if (!search) return allCustomers
-        const q = search.toLowerCase()
-        return allCustomers.filter(
-            (c) =>
-                c.name.toLowerCase().includes(q) ||
-                (c.phone || "").includes(q)
-        )
-    }, [allCustomers, search])
-
-    const visible = filtered.slice(0, displayCount)
-    const hasMore = filtered.length > displayCount
+    // Intersection Observer for infinite scrolling
+    const observer = useRef<IntersectionObserver | null>(null)
+    const bottomRef = (node: HTMLDivElement | null) => {
+        if (isFetchingNextPage) return
+        if (observer.current) observer.current.disconnect()
+        observer.current = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting && hasNextPage) {
+                fetchNextPage()
+            }
+        })
+        if (node) observer.current.observe(node)
+    }
 
     // Focus search on open, reset on close, sync local selection
     useEffect(() => {
         if (open) {
             setSearch("")
-            setDisplayCount(PAGE_SIZE)
             setLocalSelected(customer)
             setTimeout(() => inputRef.current?.focus(), 50)
         }
@@ -147,24 +154,23 @@ export const CustomerModal = memo(function CustomerModal({
                             value={search}
                             onChange={(e) => {
                                 setSearch(e.target.value)
-                                setDisplayCount(PAGE_SIZE)
                             }}
                             className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/60"
                         />
                         <span className="text-xs text-muted-foreground">
-                            {filtered.length} customer
+                            {allCustomers.length} customer
                         </span>
                     </div>
 
                     {/* Customer List */}
                     <ScrollArea className="max-h-[50vh]">
-                        {visible.length === 0 ? (
+                        {allCustomers.length === 0 && !isLoading ? (
                             <p className="py-12 text-center text-sm text-muted-foreground">
                                 Tidak ditemukan
                             </p>
                         ) : (
                             <div className="space-y-1 py-1">
-                                {visible.map((c) => {
+                                {allCustomers.map((c) => {
                                     const cAddress = ""
                                     const isSelected =
                                         localSelected?.id === c.id
@@ -219,24 +225,13 @@ export const CustomerModal = memo(function CustomerModal({
                                         </button>
                                     )
                                 })}
-                                {hasMore && (
-                                    <div className="py-3 text-center">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="text-xs"
-                                            onClick={() =>
-                                                setDisplayCount(
-                                                    (c) => c + PAGE_SIZE
-                                                )
-                                            }
-                                        >
-                                            Tampilkan lebih banyak (
-                                            {filtered.length - displayCount}{" "}
-                                            tersisa)
-                                        </Button>
+                                {isFetchingNextPage && (
+                                    <div className="py-3 text-center text-xs text-muted-foreground animate-pulse">
+                                        Memuat lebih banyak...
                                     </div>
                                 )}
+                                {/* Sentinel for IntersectionObserver */}
+                                <div ref={bottomRef} className="h-4 w-full" />
                             </div>
                         )}
                     </ScrollArea>

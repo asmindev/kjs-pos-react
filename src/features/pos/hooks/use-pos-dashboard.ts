@@ -12,11 +12,18 @@ export function usePosDashboard() {
     const barcodeRef = useRef<BarcodeInputRef>(null)
 
     const {
-        data: products = [],
+        data,
         isLoading,
         error,
         isFetching,
+        hasNextPage,
+        fetchNextPage,
+        isFetchingNextPage,
     } = useProducts(searchTerm, activeCategory)
+    
+    const products = useMemo(() => {
+        return data?.pages.flatMap((page) => page) ?? []
+    }, [data])
     
     const { data: categoriesData = [] } = useCategories()
     const { mutate: syncData, isPending: isSyncing } = usePosSync()
@@ -69,6 +76,9 @@ export function usePosDashboard() {
         isLoading,
         error,
         isFetching,
+        hasNextPage,
+        fetchNextPage,
+        isFetchingNextPage,
         categories,
         isSyncing,
         syncData,

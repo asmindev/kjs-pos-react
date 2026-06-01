@@ -45,6 +45,9 @@ export default function POSDashboard() {
         isLoading,
         error,
         isFetching,
+        hasNextPage,
+        fetchNextPage,
+        isFetchingNextPage,
         categories,
         isSyncing,
         syncData,
@@ -297,6 +300,9 @@ export default function POSDashboard() {
                                 <ProductGrid
                                     products={products}
                                     searchQuery={searchTerm}
+                                    hasNextPage={hasNextPage}
+                                    fetchNextPage={fetchNextPage}
+                                    isFetchingNextPage={isFetchingNextPage}
                                 />
                             </div>
                         )}

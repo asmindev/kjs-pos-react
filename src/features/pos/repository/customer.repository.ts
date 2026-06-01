@@ -5,7 +5,7 @@ import { fetchCustomers } from "../api/odoo.adapter"
 
 export interface ICustomerRepository {
     list(): Promise<Customer[]>
-    search(query: string): Promise<Customer[]>
+    search(query: string, limit?: number, offset?: number): Promise<Customer[]>
     sync(): Promise<number>
 }
 
@@ -20,17 +20,22 @@ export class CustomerRepository implements ICustomerRepository {
             .filter(Boolean) as Customer[]
     }
 
-    async search(query: string): Promise<Customer[]> {
-        const q = query.toLowerCase()
-        const collection = db.cachedCustomers.filter((c) => {
-            return !!(
-                c.name.toLowerCase().includes(q) ||
-                (c.email && c.email.toLowerCase().includes(q)) ||
-                (c.phone && c.phone.toLowerCase().includes(q)) ||
-                (c.barcode && c.barcode.toLowerCase().includes(q))
-            )
-        })
-        const results = await collection.toArray()
+    async search(query: string, limit: number = 50, offset: number = 0): Promise<Customer[]> {
+        let collection = db.cachedCustomers.toCollection()
+
+        if (query) {
+            const q = query.toLowerCase()
+            collection = db.cachedCustomers.filter((c) => {
+                return !!(
+                    c.name.toLowerCase().includes(q) ||
+                    (c.email && c.email.toLowerCase().includes(q)) ||
+                    (c.phone && c.phone.toLowerCase().includes(q)) ||
+                    (c.barcode && c.barcode.toLowerCase().includes(q))
+                )
+            })
+        }
+        
+        const results = await collection.offset(offset).limit(limit).toArray()
         return results
             .map((c) => {
                 const parsed = CustomerSchema.safeParse(c)
