@@ -1,32 +1,30 @@
-type CacheEntry<T> = {
-  value: T
-  expiresAt: number | null
-}
-
-const cacheStore = new Map<string, CacheEntry<unknown>>()
+import { db } from "@/features/pos/db"
 
 export const cacheManager = {
-  set<T>(key: string, value: T, ttlMs?: number) {
-    cacheStore.set(key, {
+  async set<T>(key: string, value: T, ttlMs?: number) {
+    await db.keyValueCache.put({
+      key,
       value,
       expiresAt: ttlMs ? Date.now() + ttlMs : null,
     })
   },
-  get<T>(key: string) {
-    const entry = cacheStore.get(key)
+  
+  async get<T>(key: string): Promise<T | null> {
+    const entry = await db.keyValueCache.get(key)
 
     if (!entry) {
       return null
     }
 
     if (entry.expiresAt !== null && entry.expiresAt < Date.now()) {
-      cacheStore.delete(key)
+      await db.keyValueCache.delete(key)
       return null
     }
 
     return entry.value as T
   },
-  clear() {
-    cacheStore.clear()
+  
+  async clear() {
+    await db.keyValueCache.clear()
   },
 }

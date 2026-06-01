@@ -34,6 +34,12 @@ export type CachedProduct = {
     cachedAt: number
 }
 
+export type KeyValueCache = {
+    key: string
+    value: any
+    expiresAt: number | null
+}
+
 const db = new Dexie("pos-offline-db") as Dexie & {
     transactions: EntityTable<LocalTransaction, "id">
     syncQueue: EntityTable<
@@ -41,15 +47,17 @@ const db = new Dexie("pos-offline-db") as Dexie & {
         "id"
     >
     cachedProducts: EntityTable<CachedProduct, "id">
+    keyValueCache: EntityTable<KeyValueCache, "key">
 }
 
 db.version(1).stores({
-    transactions:
-        "++id, reference, syncStatus, createdAt, customerId",
-    syncQueue:
-        "++id, transactionRef, retries, lastAttempt",
-    cachedProducts:
-        "id, barcode, name",
+    transactions: "++id, reference, syncStatus, createdAt, customerId",
+    syncQueue: "++id, transactionRef, retries, lastAttempt",
+    cachedProducts: "id, barcode, name",
+})
+
+db.version(2).stores({
+    keyValueCache: "key",
 })
 
 export { db }

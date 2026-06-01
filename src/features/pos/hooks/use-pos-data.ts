@@ -9,6 +9,7 @@ import {
     type OdooCustomer,
 } from "@/features/pos/api/odoo-adapter"
 import { useAuth } from "@/features/pos/hooks/use-auth"
+import { cacheManager } from "@/infrastructure/cache/cache-manager"
 
 type Product = {
     id: string
@@ -67,7 +68,7 @@ function mapCustomer(c: OdooCustomer): Customer {
     }
 }
 
-function saveToCache(
+async function saveToCache(
     products: Product[],
     customers: Customer[],
     categories: string[]
@@ -79,22 +80,26 @@ function saveToCache(
             categories,
             timestamp: Date.now(),
         }
-        localStorage.setItem(CACHE_KEY, JSON.stringify(data))
+        await cacheManager.set(CACHE_KEY, data, CACHE_TTL)
     } catch {
         // ignore storage errors
     }
 }
 
-function loadFromCache(): {
+async function loadFromCache(): Promise<{
     products: Product[]
     customers: Customer[]
     categories: string[]
-} | null {
+} | null> {
     try {
-        const raw = localStorage.getItem(CACHE_KEY)
-        if (!raw) return null
-        const cached = JSON.parse(raw)
-        if (Date.now() - cached.timestamp > CACHE_TTL) return null
+        const cached = await cacheManager.get<{
+            products: Product[]
+            customers: Customer[]
+            categories: string[]
+            timestamp: number
+        }>(CACHE_KEY)
+        
+        if (!cached) return null
         return {
             products: cached.products,
             customers: cached.customers,
@@ -122,7 +127,7 @@ export const usePosData = create<PosDataState>((set, get) => ({
 
         // Jika sudah unauthorized, langsung hit API (jangan pakai cache)
         if (!force && !alreadyUnauthorized) {
-            const cached = loadFromCache()
+            const cached = await loadFromCache()
             if (cached) {
                 set({
                     products: cached.products,
@@ -161,7 +166,7 @@ export const usePosData = create<PosDataState>((set, get) => ({
                 }
                 // Refresh juga gagal — tampilkan restricted modal
                 try {
-                    localStorage.removeItem(CACHE_KEY)
+                    await cacheManager.clear()
                 } catch {
                     /* ignore */
                 }
