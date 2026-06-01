@@ -100,17 +100,26 @@ export const ProductGrid = memo(function ProductGrid({
     const parentRef = useRef<HTMLDivElement>(null)
     const [cols, setCols] = useState(2)
 
+    const gridRef = useRef<HTMLDivElement>(null)
+
     useEffect(() => {
-        if (!parentRef.current) return
-        const observer = new ResizeObserver((entries) => {
-            const width = entries[0].contentRect.width
-            if (width >= 1024) setCols(6) // lg
-            else if (width >= 640) setCols(4) // sm
-            else setCols(2)
-        })
-        observer.observe(parentRef.current)
-        return () => observer.disconnect()
-    }, [])
+        const updateCols = () => {
+            if (!gridRef.current) return
+            const style = window.getComputedStyle(gridRef.current)
+            const gridTemplateColumns = style.getPropertyValue("grid-template-columns")
+            if (gridTemplateColumns && gridTemplateColumns !== "none") {
+                // Computed style returns something like "150px 150px 150px"
+                const numCols = gridTemplateColumns.split(" ").length
+                if (numCols > 0 && numCols !== cols) {
+                    setCols(numCols)
+                }
+            }
+        }
+
+        updateCols()
+        window.addEventListener("resize", updateCols)
+        return () => window.removeEventListener("resize", updateCols)
+    }, [cols])
 
     const rows = useMemo(() => {
         const result = []
@@ -124,7 +133,7 @@ export const ProductGrid = memo(function ProductGrid({
         count: hasNextPage ? rows.length + 1 : rows.length,
         getScrollElement: () => parentRef.current,
         estimateSize: () => 140, // Approximate height of ProductCard + gap
-        overscan: 4,
+        overscan: 6, // Tweak this value to control how many extra rows are rendered outside the viewport.
     })
 
     const virtualItems = rowVirtualizer.getVirtualItems()
@@ -168,8 +177,11 @@ export const ProductGrid = memo(function ProductGrid({
 
     return (
         <div className="flex h-full flex-col overflow-hidden bg-muted p-2">
+            {/* Invisible grid to dynamically measure CSS computed columns */}
+            <div ref={gridRef} className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 invisible h-0" aria-hidden="true" />
+            
             <div ref={parentRef} className="flex-1 overflow-auto">
-                <div 
+                <div
                     className="relative w-full"
                     style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
                 >
@@ -181,13 +193,15 @@ export const ProductGrid = memo(function ProductGrid({
                             return (
                                 <div
                                     key={virtualRow.key}
-                                    className="absolute top-0 left-0 w-full flex items-center justify-center pb-4"
+                                    className="absolute top-0 left-0 flex w-full items-center justify-center pb-4"
                                     style={{
                                         height: `${virtualRow.size}px`,
                                         transform: `translateY(${virtualRow.start}px)`,
                                     }}
                                 >
-                                    <span className="text-xs text-muted-foreground animate-pulse">Memuat...</span>
+                                    <span className="animate-pulse text-xs text-muted-foreground">
+                                        Memuat...
+                                    </span>
                                 </div>
                             )
                         }
@@ -202,7 +216,7 @@ export const ProductGrid = memo(function ProductGrid({
                                     transform: `translateY(${virtualRow.start}px)`,
                                 }}
                             >
-                                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6 h-full">
+                                <div className="grid h-full grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
                                     {rowProducts.map((product) => (
                                         <ProductCard
                                             key={product.id}
