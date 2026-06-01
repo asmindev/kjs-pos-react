@@ -1,5 +1,6 @@
 import { create } from "zustand"
 import {
+    fetchProducts,
     fetchCustomers,
     fetchProductsByQuery,
     fetchCategories,
@@ -66,7 +67,11 @@ function mapCustomer(c: OdooCustomer): Customer {
     }
 }
 
-function saveToCache(products: Product[], customers: Customer[], categories: string[]) {
+function saveToCache(
+    products: Product[],
+    customers: Customer[],
+    categories: string[]
+) {
     try {
         const data = {
             products,
@@ -97,17 +102,6 @@ function loadFromCache(): {
         }
     } catch {
         return null
-    }
-}
-
-function saveToCache(products: Product[], customers: Customer[]) {
-    try {
-        localStorage.setItem(
-            CACHE_KEY,
-            JSON.stringify({ products, customers, timestamp: Date.now() })
-        )
-    } catch {
-        // localStorage penuh — abaikan
     }
 }
 
@@ -166,7 +160,11 @@ export const usePosData = create<PosDataState>((set, get) => ({
                     return
                 }
                 // Refresh juga gagal — tampilkan restricted modal
-                try { localStorage.removeItem(CACHE_KEY) } catch { /* ignore */ }
+                try {
+                    localStorage.removeItem(CACHE_KEY)
+                } catch {
+                    /* ignore */
+                }
                 set({
                     isLoading: false,
                     isUnauthorized: true,
@@ -185,7 +183,7 @@ export const usePosData = create<PosDataState>((set, get) => ({
                 // Tambahkan "Semua" di awal
                 const catNames = catResult.data.map((c) => c.name)
                 // Filter out duplicates and keep alphabetical if needed, but let's just prepend "Semua"
-                updates.categories = ["Semua", ...Array.from(new Set(catNames))]
+                updates.categories = ["Semua", ...Array.from(new Set<string>(catNames))]
             }
 
             updates.lastFetched = Date.now()
@@ -200,10 +198,7 @@ export const usePosData = create<PosDataState>((set, get) => ({
         } catch (e) {
             set({
                 isLoading: false,
-                error:
-                    e instanceof Error
-                        ? e.message
-                        : "Gagal memuat data",
+                error: e instanceof Error ? e.message : "Gagal memuat data",
             })
         }
     },
@@ -221,7 +216,9 @@ export const usePosData = create<PosDataState>((set, get) => ({
                 // Merge ke products lokal agar hasil search bisa dipakai cart
                 set((state) => {
                     const existingIds = new Set(state.products.map((p) => p.id))
-                    const newProducts = mapped.filter((p) => !existingIds.has(p.id))
+                    const newProducts = mapped.filter(
+                        (p) => !existingIds.has(p.id)
+                    )
                     return {
                         searchResults: mapped,
                         products: [...state.products, ...newProducts],
