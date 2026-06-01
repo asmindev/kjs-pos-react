@@ -18,16 +18,7 @@ import { ButtonGroup } from "@/components/ui/button-group"
 import { RestrictedModal } from "@/features/pos/components/restricted-modal"
 import { useCart } from "@/features/pos/hooks/use-cart"
 
-const categories = [
-    "Semua",
-    "Makanan",
-    "Minuman",
-    "Rokok",
-    "Sembako",
-    "Snack",
-    "Favorit",
-    "Lainnya",
-]
+
 
 export default function POSDashboard() {
     // searchTerm hanya diupdate setelah debounce dari BarcodeInput — tidak re-render saat mengetik
@@ -37,6 +28,7 @@ export default function POSDashboard() {
     const [showMore, setShowMore] = useState(false)
     const { isOnline, pendingCount } = useSync()
     const products = usePosData((s) => s.products)
+    const categories = usePosData((s) => s.categories)
     const isLoading = usePosData((s) => s.isLoading)
     const isSearching = usePosData((s) => s.isSearching)
     const searchResults = usePosData((s) => s.searchResults)
@@ -67,16 +59,23 @@ export default function POSDashboard() {
         [products, addItem, clearSearch]
     )
 
-    // Filter lokal dari products cache — hanya dihitung saat searchTerm berubah
+    // Filter lokal dari products cache — hanya dihitung saat searchTerm atau activeCategory berubah
     const localFiltered = useMemo(() => {
-        if (!searchTerm) return products
+        let result = products
+
+        if (activeCategory !== "Semua") {
+            result = result.filter((p) => p.category === activeCategory)
+        }
+
+        if (!searchTerm) return result
+
         const q = searchTerm.toLowerCase()
-        return products.filter(
+        return result.filter(
             (p) =>
                 p.name.toLowerCase().includes(q) ||
                 p.barcode.includes(searchTerm)
         )
-    }, [products, searchTerm])
+    }, [products, searchTerm, activeCategory])
 
     // Fallback ke API jika hasil lokal kosong dan ada query
     useEffect(() => {

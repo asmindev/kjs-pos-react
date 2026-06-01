@@ -72,7 +72,8 @@ export type OdooProduct = {
     name: string
     price: number
     stock: number
-    uom?: string
+    uom: string
+    category?: string
 }
 
 export async function fetchProducts(): Promise<OdooResponse<OdooProduct[]>> {
@@ -106,6 +107,25 @@ export async function fetchProductsByQuery(
     )
     if (result.ok && result.data) {
         return { ok: true, data: result.data.products }
+    }
+    return { ok: false, error: result.error, isUnauthorized: result.isUnauthorized }
+}
+
+// --- Categories ---
+
+export type OdooCategory = {
+    id: number
+    name: string
+}
+
+export async function fetchCategories(): Promise<
+    OdooResponse<OdooCategory[]>
+> {
+    const result = await odooFetch<{ categories: OdooCategory[] }>(
+        "/api/categories"
+    )
+    if (result.ok && result.data) {
+        return { ok: true, data: result.data.categories }
     }
     return { ok: false, error: result.error, isUnauthorized: result.isUnauthorized }
 }

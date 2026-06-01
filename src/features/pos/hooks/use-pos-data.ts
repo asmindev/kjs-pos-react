@@ -1,8 +1,8 @@
 import { create } from "zustand"
 import {
-    fetchProducts,
     fetchCustomers,
     fetchProductsByQuery,
+    fetchCategories,
     refreshToken,
     type OdooProduct,
     type OdooCustomer,
@@ -15,6 +15,7 @@ type Product = {
     name: string
     price: number
     stock: number
+    category: string
 }
 
 type Customer = {
@@ -29,6 +30,7 @@ type Customer = {
 type PosDataState = {
     products: Product[]
     customers: Customer[]
+    categories: string[]
     isLoading: boolean
     error: string | null
     isUnauthorized: boolean
@@ -44,15 +46,14 @@ type PosDataState = {
 const CACHE_KEY = "pos_data_cache_v2"
 const CACHE_TTL = 5 * 60 * 1000 // 5 menit
 
-function mapProduct(p: OdooProduct): Product {
-    return {
-        id: String(p.id),
-        barcode: p.barcode || "",
-        name: p.name,
-        price: p.price,
-        stock: p.stock,
-    }
-}
+const mapProduct = (p: OdooProduct): Product => ({
+    id: String(p.id),
+    barcode: p.barcode || "",
+    name: p.name,
+    price: p.price,
+    stock: p.stock,
+    category: p.category || "Lainnya",
+})
 
 function mapCustomer(c: OdooCustomer): Customer {
     return {
@@ -65,13 +66,35 @@ function mapCustomer(c: OdooCustomer): Customer {
     }
 }
 
-function loadFromCache(): { products: Product[]; customers: Customer[] } | null {
+function saveToCache(products: Product[], customers: Customer[], categories: string[]) {
+    try {
+        const data = {
+            products,
+            customers,
+            categories,
+            timestamp: Date.now(),
+        }
+        localStorage.setItem(CACHE_KEY, JSON.stringify(data))
+    } catch {
+        // ignore storage errors
+    }
+}
+
+function loadFromCache(): {
+    products: Product[]
+    customers: Customer[]
+    categories: string[]
+} | null {
     try {
         const raw = localStorage.getItem(CACHE_KEY)
         if (!raw) return null
         const cached = JSON.parse(raw)
         if (Date.now() - cached.timestamp > CACHE_TTL) return null
-        return { products: cached.products, customers: cached.customers }
+        return {
+            products: cached.products,
+            customers: cached.customers,
+            categories: cached.categories,
+        }
     } catch {
         return null
     }
@@ -91,6 +114,7 @@ function saveToCache(products: Product[], customers: Customer[]) {
 export const usePosData = create<PosDataState>((set, get) => ({
     products: [],
     customers: [],
+    categories: ["Semua"],
     isLoading: false,
     error: null,
     isUnauthorized: false,
@@ -109,6 +133,7 @@ export const usePosData = create<PosDataState>((set, get) => ({
                 set({
                     products: cached.products,
                     customers: cached.customers,
+                    categories: cached.categories || ["Semua"],
                     isLoading: false,
                     lastFetched: Date.now(),
                 })
@@ -119,9 +144,10 @@ export const usePosData = create<PosDataState>((set, get) => ({
         set({ isLoading: true, error: null })
 
         try {
-            const [prodResult, custResult] = await Promise.all([
+            const [prodResult, custResult, catResult] = await Promise.all([
                 fetchProducts(),
                 fetchCustomers(),
+                fetchCategories(),
             ])
 
             const updates: Partial<PosDataState> = {}
@@ -155,14 +181,21 @@ export const usePosData = create<PosDataState>((set, get) => ({
                 updates.customers = custResult.data.map(mapCustomer)
             }
 
+            if (catResult.ok && catResult.data) {
+                // Tambahkan "Semua" di awal
+                const catNames = catResult.data.map((c) => c.name)
+                // Filter out duplicates and keep alphabetical if needed, but let's just prepend "Semua"
+                updates.categories = ["Semua", ...Array.from(new Set(catNames))]
+            }
+
             updates.lastFetched = Date.now()
             updates.isLoading = false
             set(updates)
 
             // Simpan ke cache
-            const { products, customers } = get()
+            const { products, customers, categories } = get()
             if (products.length > 0 || customers.length > 0) {
-                saveToCache(products, customers)
+                saveToCache(products, customers, categories)
             }
         } catch (e) {
             set({
