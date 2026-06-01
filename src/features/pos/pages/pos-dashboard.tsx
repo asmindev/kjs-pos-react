@@ -1,5 +1,8 @@
-import { useState, useEffect, useMemo } from "react"
-import { BarcodeInput } from "@/features/pos/components/barcode-input"
+import { useState, useEffect, useMemo, useRef, useCallback } from "react"
+import {
+    BarcodeInput,
+    type BarcodeInputRef,
+} from "@/features/pos/components/barcode-input"
 import { ProductGrid } from "@/features/pos/components/product-grid"
 import { CartSidebar } from "@/features/pos/components/cart-sidebar"
 import { CustomerModal } from "@/features/pos/components/customer-modal"
@@ -9,7 +12,6 @@ import { Badge } from "@/components/ui/badge"
 import { Printer, Loader2, User, Store } from "lucide-react"
 import { useAuth } from "@/features/pos/hooks/use-auth"
 import { usePosData } from "@/features/pos/hooks/use-pos-data"
-import { useDebounce } from "@/shared/hooks/use-debounce"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { ButtonGroup } from "@/components/ui/button-group"
@@ -28,8 +30,9 @@ const categories = [
 ]
 
 export default function POSDashboard() {
-    const [searchQuery, setSearchQuery] = useState("")
-    const debouncedSearch = useDebounce(searchQuery, 300)
+    // searchTerm hanya diupdate setelah debounce dari BarcodeInput — tidak re-render saat mengetik
+    const [searchTerm, setSearchTerm] = useState("")
+    const barcodeRef = useRef<BarcodeInputRef>(null)
     const [activeCategory, setActiveCategory] = useState("Semua")
     const [showMore, setShowMore] = useState(false)
     const { isOnline, pendingCount } = useSync()
@@ -45,43 +48,52 @@ export default function POSDashboard() {
     const { isAuthenticated, payload } = useAuth()
     const addItem = useCart((s) => s.addItem)
 
-    const handleSearchEnter = () => {
-        if (!searchQuery) return
-        const match = products.find((p) => p.barcode === searchQuery)
-        if (match) {
-            addItem(match)
-            setSearchQuery("")
-            clearSearch()
-        }
-    }
+    // Dipanggil dari BarcodeInput setelah debounce 300ms
+    const handleSearch = useCallback((query: string) => {
+        setSearchTerm(query)
+    }, [])
 
-    // Filter lokal dari products cache — hanya dihitung saat debouncedSearch berubah
+    // Dipanggil saat Enter ditekan, menerima nilai mentah saat ini
+    const handleEnter = useCallback(
+        (currentValue: string) => {
+            if (!currentValue) return
+            const match = products.find((p) => p.barcode === currentValue)
+            if (match) {
+                addItem(match)
+                barcodeRef.current?.clear()
+                clearSearch()
+            }
+        },
+        [products, addItem, clearSearch]
+    )
+
+    // Filter lokal dari products cache — hanya dihitung saat searchTerm berubah
     const localFiltered = useMemo(() => {
-        if (!debouncedSearch) return products
-        const q = debouncedSearch.toLowerCase()
+        if (!searchTerm) return products
+        const q = searchTerm.toLowerCase()
         return products.filter(
             (p) =>
                 p.name.toLowerCase().includes(q) ||
-                p.barcode.includes(debouncedSearch)
+                p.barcode.includes(searchTerm)
         )
-    }, [products, debouncedSearch])
+    }, [products, searchTerm])
 
     // Fallback ke API jika hasil lokal kosong dan ada query
     useEffect(() => {
-        if (debouncedSearch && localFiltered.length === 0) {
-            searchProducts(debouncedSearch)
+        if (searchTerm && localFiltered.length === 0) {
+            searchProducts(searchTerm)
         } else {
             clearSearch()
         }
-    }, [debouncedSearch, localFiltered.length, searchProducts, clearSearch])
+    }, [searchTerm, localFiltered.length, searchProducts, clearSearch])
 
     // Produk yang ditampilkan: lokal jika ada, fallback dari API
     const displayProducts = useMemo(
         () =>
-            debouncedSearch && localFiltered.length === 0 && searchResults.length > 0
+            searchTerm && localFiltered.length === 0 && searchResults.length > 0
                 ? searchResults
                 : localFiltered,
-        [debouncedSearch, localFiltered, searchResults]
+        [searchTerm, localFiltered, searchResults]
     )
 
     // Fetch data on mount
@@ -92,9 +104,9 @@ export default function POSDashboard() {
     return (
         <div className="flex h-full">
             {/* Left Column: Header + Action Area + Products + Footer */}
-            <div className="flex flex-1 flex-col overflow-hidden bg-muted/10">
+            <div className="flex flex-1 flex-col gap-y-2 overflow-hidden bg-muted/10 px-4">
                 {/* Header */}
-                <div className="z-10 flex shrink-0 items-center justify-between gap-4 border-b bg-background px-4 py-3">
+                <div className="z-10 flex shrink-0 items-center justify-between gap-4 bg-background py-2">
                     <div className="flex items-center gap-2">
                         <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
                             <Store className="size-4" />
@@ -102,6 +114,11 @@ export default function POSDashboard() {
                         <h1 className="font-heading text-lg font-bold tracking-tight">
                             POS KJS
                         </h1>
+                        {products.length > 0 && (
+                            <span className="text-xs font-normal text-muted-foreground">
+                                {products.length.toLocaleString("id-ID")} SKU
+                            </span>
+                        )}
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -124,7 +141,7 @@ export default function POSDashboard() {
                             </span>
                         </div>
                         {isAuthenticated && payload && (
-                            <div className="flex items-center gap-2 border bg-muted/30 px-3 py-1">
+                            <div className="flex items-center gap-2 bg-muted/30 px-3 py-1">
                                 <User className="size-3.5 text-muted-foreground" />
                                 <span className="text-xs font-medium">
                                     {payload.name}
@@ -135,14 +152,14 @@ export default function POSDashboard() {
                 </div>
 
                 {/* Action & Filter Area */}
-                <div className="flex shrink-0 flex-col gap-3 px-4 pt-4">
+                <div className="flex shrink-0 flex-col gap-3">
                     {/* Input Bar: Barcode + Customer */}
                     <div className="flex items-center gap-3">
                         <div className="flex-1 rounded-md transition-shadow focus-within:shadow-md">
-                            <BarcodeInput 
-                                value={searchQuery}
-                                onChange={setSearchQuery}
-                                onEnter={handleSearchEnter}
+                            <BarcodeInput
+                                ref={barcodeRef}
+                                onSearch={handleSearch}
+                                onEnter={handleEnter}
                             />
                         </div>
                         <div className="rounded-md transition-shadow focus-within:shadow-md">
@@ -237,7 +254,7 @@ export default function POSDashboard() {
                 </div>
 
                 {/* Products */}
-                <div className="flex flex-1 flex-col overflow-hidden px-4 pb-4">
+                <div className="flex flex-1 flex-col overflow-hidden">
                     <div className="flex flex-1 flex-col overflow-hidden border bg-background ring-1 ring-black/5 dark:ring-white/5">
                         {isLoading ? (
                             <div className="flex h-full animate-in flex-col items-center justify-center gap-3 text-center opacity-0 duration-500 fade-in">
@@ -272,9 +289,9 @@ export default function POSDashboard() {
                             </div>
                         ) : (
                             <div className="flex-1 animate-in overflow-hidden duration-300 fade-in">
-                            <ProductGrid
+                                <ProductGrid
                                     products={displayProducts}
-                                    searchQuery={debouncedSearch}
+                                    searchQuery={searchTerm}
                                 />
                             </div>
                         )}
@@ -282,7 +299,7 @@ export default function POSDashboard() {
                 </div>
 
                 {/* Footer: Shortcuts */}
-                <div className="flex shrink-0 items-center justify-between border-t bg-background px-4 py-2 shadow-[0_-2px_10px_rgba(0,0,0,0.02)]">
+                <div className="flex shrink-0 items-center justify-between bg-background pb-1 shadow-[0_-2px_10px_rgba(0,0,0,0.02)]">
                     <div className="flex items-center gap-4">
                         <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
                             Shortcuts
@@ -316,7 +333,7 @@ export default function POSDashboard() {
             </div>
 
             {/* Right Column: Cart (full height) */}
-            <div className="w-80 shrink-0 border-l">
+            <div className="w-120 shrink-0 border-l">
                 <CartSidebar />
             </div>
 

@@ -173,4 +173,12 @@ export async function checkOdooConnection(): Promise<
     return odooFetch("/api/health")
 }
 
+// --- Auth Refresh ---
+
+export async function refreshToken(): Promise<
+    OdooResponse<{ token: string; expires_at: string }>
+> {
+    return odooFetch("/api/auth/refresh")
+}
+
 export { odooFetch }

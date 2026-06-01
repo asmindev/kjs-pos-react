@@ -3,9 +3,11 @@ import {
     fetchProducts,
     fetchCustomers,
     fetchProductsByQuery,
+    refreshToken,
     type OdooProduct,
     type OdooCustomer,
 } from "@/features/pos/api/odoo-adapter"
+import { useAuth } from "@/features/pos/hooks/use-auth"
 
 type Product = {
     id: string
@@ -127,7 +129,17 @@ export const usePosData = create<PosDataState>((set, get) => ({
             if (prodResult.ok && prodResult.data) {
                 updates.products = prodResult.data.map(mapProduct)
             } else if (prodResult.isUnauthorized) {
-                // Hapus cache agar tidak ada data stale setelah login ulang
+                // Coba refresh token otomatis sebelum menyerah
+                const refreshResult = await refreshToken()
+                if (refreshResult.ok && refreshResult.data?.token) {
+                    // Token berhasil di-refresh — update auth dan retry
+                    useAuth.getState().setToken(refreshResult.data.token)
+                    set({ isLoading: false, isUnauthorized: false })
+                    // Retry refetch dengan token baru
+                    get().refetch(true)
+                    return
+                }
+                // Refresh juga gagal — tampilkan restricted modal
                 try { localStorage.removeItem(CACHE_KEY) } catch { /* ignore */ }
                 set({
                     isLoading: false,
