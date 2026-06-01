@@ -1,5 +1,5 @@
 import { useMemo, memo } from "react"
-import type { Product } from "@/features/pos/domain/models/product-model"
+import type { Product } from "@/features/pos/domain/models/product.model"
 import { useCart } from "@/features/pos/hooks/use-cart"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -83,7 +83,7 @@ export const ProductGrid = memo(function ProductGrid({
         return products.filter(
             (p) =>
                 p.name.toLowerCase().includes(q) ||
-                p.barcode.includes(searchQuery)
+                p.barcode?.includes(searchQuery)
         )
     }, [products, searchQuery])
 

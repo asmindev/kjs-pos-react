@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { usePosState } from "@/features/pos/hooks/use-pos-state"
-import { usePosData } from "@/features/pos/hooks/use-pos-data"
+import { useCustomers } from "@/features/pos/hooks/use-customers"
 
 type CustomerSelectProps = { className?: string }
 
@@ -24,7 +24,7 @@ export const CustomerSelect = memo(function CustomerSelect({
 
     const customer = usePosState((s) => s.customer)
     const setCustomer = usePosState((s) => s.setCustomer)
-    const allCustomers = usePosData((s) => s.customers)
+    const { data: allCustomers = [], isLoading } = useCustomers("")
 
     // Filter in-memory — O(n) tapi untuk 2000 item <1ms
     const filtered = useMemo(() => {
@@ -32,8 +32,7 @@ export const CustomerSelect = memo(function CustomerSelect({
         const q = search.toLowerCase()
         return allCustomers.filter(
             (c) =>
-                c.name.toLowerCase().includes(q) ||
-                (c.phone || "").includes(q)
+                c.name.toLowerCase().includes(q) || (c.phone || "").includes(q)
         )
     }, [allCustomers, search])
 
@@ -57,7 +56,7 @@ export const CustomerSelect = memo(function CustomerSelect({
                     role="combobox"
                     aria-expanded={open}
                     className={cn(
-                        "h-8 w-[220px] justify-between px-3 text-xs",
+                        "h-8 w-55 justify-between px-3 text-xs",
                         className
                     )}
                 >
@@ -85,9 +84,7 @@ export const CustomerSelect = memo(function CustomerSelect({
                         <div className="flex items-center gap-2 truncate text-muted-foreground">
                             <User className="size-3 shrink-0" />
                             <span>
-                                {allCustomers.length === 0
-                                    ? "Memuat..."
-                                    : "Pilih Customer..."}
+                                {isLoading ? "Memuat..." : "Pilih Customer..."}
                             </span>
                         </div>
                     )}
@@ -96,11 +93,7 @@ export const CustomerSelect = memo(function CustomerSelect({
                     )}
                 </Button>
             </PopoverTrigger>
-            <PopoverContent
-                className="w-[260px] p-0"
-                align="start"
-                sideOffset={4}
-            >
+            <PopoverContent className="w-65 p-0" align="start" sideOffset={4}>
                 {/* Search input */}
                 <div className="flex items-center border-b px-3 py-2">
                     <Search className="mr-2 size-3.5 shrink-0 text-muted-foreground" />
@@ -136,9 +129,7 @@ export const CustomerSelect = memo(function CustomerSelect({
                                         )}
                                         onClick={() => {
                                             setCustomer(
-                                                customer?.id === c.id
-                                                    ? null
-                                                    : c
+                                                customer?.id === c.id ? null : c
                                             )
                                             setOpen(false)
                                         }}
@@ -161,8 +152,8 @@ export const CustomerSelect = memo(function CustomerSelect({
                             ))}
                             {hasMore && (
                                 <li className="px-3 py-2 text-center text-[10px] text-muted-foreground">
-                                    +{filtered.length - MAX_VISIBLE} lainnya
-                                    — ketik untuk mencari
+                                    +{filtered.length - MAX_VISIBLE} lainnya —
+                                    ketik untuk mencari
                                 </li>
                             )}
                         </ul>

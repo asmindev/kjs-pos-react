@@ -1,4 +1,4 @@
-import type { Product } from "../domain/models/product-model"
+import type { Product } from "../domain/models/product.model"
 
 export async function listProducts(): Promise<Product[]> {
   return []

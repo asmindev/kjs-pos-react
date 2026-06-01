@@ -37,20 +37,51 @@ async function odooFetch<T>(
             headers["Authorization"] = authHeader
         }
 
-        const response = await fetch(`${ODOO_BASE_URL}${path}`, {
+        let response = await fetch(`${ODOO_BASE_URL}${path}`, {
             ...options,
             headers,
         })
 
         if (!response.ok) {
             if (response.status === 401) {
-                return {
-                    ok: false,
-                    error: "Unauthorized",
-                    isUnauthorized: true,
+                if (path === "/api/auth/refresh") {
+                    return {
+                        ok: false,
+                        error: "Unauthorized",
+                        isUnauthorized: true,
+                    }
                 }
+
+                // Try to refresh token automatically
+                const refreshRes = await refreshToken()
+                if (refreshRes.ok && refreshRes.data) {
+                    useAuth.getState().setToken(refreshRes.data.token)
+                    headers["Authorization"] = `Bearer ${refreshRes.data.token}`
+                    
+                    // Retry original request
+                    response = await fetch(`${ODOO_BASE_URL}${path}`, {
+                        ...options,
+                        headers,
+                    })
+
+                    if (!response.ok) {
+                        if (response.status === 401) {
+                            useAuth.getState().clearAuth()
+                            return { ok: false, error: "Unauthorized", isUnauthorized: true }
+                        }
+                        return { ok: false, error: `HTTP ${response.status}` }
+                    }
+                } else {
+                    useAuth.getState().clearAuth()
+                    return {
+                        ok: false,
+                        error: "Unauthorized",
+                        isUnauthorized: true,
+                    }
+                }
+            } else {
+                return { ok: false, error: `HTTP ${response.status}` }
             }
-            return { ok: false, error: `HTTP ${response.status}` }
         }
 
         const data = await response.json()

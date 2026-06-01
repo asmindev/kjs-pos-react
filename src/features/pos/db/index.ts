@@ -34,30 +34,37 @@ export type CachedProduct = {
     cachedAt: number
 }
 
-export type KeyValueCache = {
+import type { Customer } from "../domain/models/customer.model"
+import type { Category } from "../domain/models/category.model"
+
+interface CacheEntry {
     key: string
     value: any
     expiresAt: number | null
 }
 
-const db = new Dexie("pos-offline-db") as Dexie & {
-    transactions: EntityTable<LocalTransaction, "id">
-    syncQueue: EntityTable<
-        { id?: number; transactionRef: string; retries: number; lastAttempt: number },
-        "id"
-    >
-    cachedProducts: EntityTable<CachedProduct, "id">
-    keyValueCache: EntityTable<KeyValueCache, "key">
+export class POSDatabase extends Dexie {
+    transactions!: EntityTable<LocalTransaction, "id">
+    syncQueue!: EntityTable<{ id?: number; transactionRef: string; retries: number; lastAttempt: number }, "id">
+    cachedProducts!: EntityTable<CachedProduct, "id">
+    cachedCustomers!: EntityTable<Customer, "id">
+    cachedCategories!: EntityTable<Category, "id">
+    keyValueCache!: EntityTable<CacheEntry, "key">
+
+    constructor() {
+        super("pos-offline-db")
+
+        this.version(2).stores({
+            transactions: "++id, reference, syncStatus, createdAt, customerId",
+            syncQueue: "++id, transactionRef, retries, lastAttempt",
+            cachedProducts: "id, barcode, name",
+            cachedCustomers: "id, name",
+            cachedCategories: "id, name",
+            keyValueCache: "key",
+        })
+    }
 }
 
-db.version(1).stores({
-    transactions: "++id, reference, syncStatus, createdAt, customerId",
-    syncQueue: "++id, transactionRef, retries, lastAttempt",
-    cachedProducts: "id, barcode, name",
-})
-
-db.version(2).stores({
-    keyValueCache: "key",
-})
+const db = new POSDatabase()
 
 export { db }

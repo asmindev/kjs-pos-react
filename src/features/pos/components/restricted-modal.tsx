@@ -1,13 +1,8 @@
-import { useNavigate } from "@tanstack/react-router"
 import {
     Dialog,
     DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { ShieldOff, LogIn } from "lucide-react"
 
 interface RestrictedModalProps {
     open: boolean
@@ -20,8 +15,6 @@ export function RestrictedModal({
     userName,
     userLogin,
 }: RestrictedModalProps) {
-    const navigate = useNavigate()
-
     return (
         <Dialog
             open={open}

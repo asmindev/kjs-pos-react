@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { usePosState } from "@/features/pos/hooks/use-pos-state"
-import { usePosData } from "@/features/pos/hooks/use-pos-data"
+import { useCustomers } from "@/features/pos/hooks/use-customers"
 
 type CustomerModalProps = { className?: string }
 
@@ -36,7 +36,7 @@ export const CustomerModal = memo(function CustomerModal({
 
     const customer = usePosState((s) => s.customer)
     const setCustomer = usePosState((s) => s.setCustomer)
-    const allCustomers = usePosData((s) => s.customers)
+    const { data: allCustomers = [] } = useCustomers("")
 
     // Local state for modal selection before confirming
     const [localSelected, setLocalSelected] = useState<typeof customer>(null)
@@ -48,8 +48,7 @@ export const CustomerModal = memo(function CustomerModal({
         return allCustomers.filter(
             (c) =>
                 c.name.toLowerCase().includes(q) ||
-                (c.phone || "").includes(q) ||
-                (c.street || "").toLowerCase().includes(q)
+                (c.phone || "").includes(q)
         )
     }, [allCustomers, search])
 
@@ -71,9 +70,7 @@ export const CustomerModal = memo(function CustomerModal({
         setOpen(false)
     }
 
-    const address = customer
-        ? [customer.street, customer.city].filter(Boolean).join(", ")
-        : ""
+    const address = ""
 
     return (
         <>
@@ -168,9 +165,7 @@ export const CustomerModal = memo(function CustomerModal({
                         ) : (
                             <div className="space-y-1 py-1">
                                 {visible.map((c) => {
-                                    const cAddress = [c.street, c.city]
-                                        .filter(Boolean)
-                                        .join(", ")
+                                    const cAddress = ""
                                     const isSelected =
                                         localSelected?.id === c.id
 
@@ -254,12 +249,7 @@ export const CustomerModal = memo(function CustomerModal({
                                         {localSelected.name}
                                     </span>
                                     <span className="truncate text-[10px] text-muted-foreground">
-                                        {[
-                                            localSelected.street,
-                                            localSelected.city,
-                                        ]
-                                            .filter(Boolean)
-                                            .join(", ") || "Tidak ada alamat"}
+                                        "Tidak ada alamat"
                                     </span>
                                 </div>
                             ) : (

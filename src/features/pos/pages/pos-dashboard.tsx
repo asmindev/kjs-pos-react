@@ -11,7 +11,9 @@ import { useSync } from "@/features/pos/hooks/use-sync"
 import { Badge } from "@/components/ui/badge"
 import { Printer, Loader2, User, Store } from "lucide-react"
 import { useAuth } from "@/features/pos/hooks/use-auth"
-import { usePosData } from "@/features/pos/hooks/use-pos-data"
+import { useProducts } from "@/features/pos/hooks/use-products"
+import { useCategories } from "@/features/pos/hooks/use-categories"
+import { usePosSync } from "@/features/pos/hooks/use-pos-sync"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { ButtonGroup } from "@/components/ui/button-group"
@@ -21,31 +23,35 @@ import { useCart } from "@/features/pos/hooks/use-cart"
 
 
 export default function POSDashboard() {
-    // searchTerm hanya diupdate setelah debounce dari BarcodeInput — tidak re-render saat mengetik
     const [searchTerm, setSearchTerm] = useState("")
     const barcodeRef = useRef<BarcodeInputRef>(null)
     const [activeCategory, setActiveCategory] = useState("Semua")
     const [showMore, setShowMore] = useState(false)
     const { isOnline, pendingCount } = useSync()
-    const products = usePosData((s) => s.products)
-    const categories = usePosData((s) => s.categories)
-    const isLoading = usePosData((s) => s.isLoading)
-    const isSearching = usePosData((s) => s.isSearching)
-    const searchResults = usePosData((s) => s.searchResults)
-    const error = usePosData((s) => s.error)
-    const isUnauthorized = usePosData((s) => s.isUnauthorized)
-    const refetch = usePosData((s) => s.refetch)
-    const searchProducts = usePosData((s) => s.searchProducts)
-    const clearSearch = usePosData((s) => s.clearSearch)
+    
+    // TanStack Query Hooks
+    const { data: products = [], isLoading, error, isFetching } = useProducts(searchTerm, activeCategory)
+    const { data: categoriesData = [] } = useCategories()
+    const { mutate: syncData, isPending: isSyncing } = usePosSync()
+    
+    // Derivasi kategori dengan "Semua" di awal
+    const categories = useMemo(() => {
+        const names = categoriesData.map(c => c.name)
+        return ["Semua", ...Array.from(new Set(names))]
+    }, [categoriesData])
+
     const { isAuthenticated, payload } = useAuth()
     const addItem = useCart((s) => s.addItem)
+
+    // Cek apakah baru saja di-kick karena 401 (terjadi saat refresh gagal di odoo-adapter)
+    const isUnauthorized = !isAuthenticated
 
     // Dipanggil dari BarcodeInput setelah debounce 300ms
     const handleSearch = useCallback((query: string) => {
         setSearchTerm(query)
     }, [])
 
-    // Dipanggil saat Enter ditekan, menerima nilai mentah saat ini
+    // Dipanggil saat Enter ditekan
     const handleEnter = useCallback(
         (currentValue: string) => {
             if (!currentValue) return
@@ -53,52 +59,22 @@ export default function POSDashboard() {
             if (match) {
                 addItem(match)
                 barcodeRef.current?.clear()
-                clearSearch()
+                setSearchTerm("")
             }
         },
-        [products, addItem, clearSearch]
+        [products, addItem]
     )
 
-    // Filter lokal dari products cache — hanya dihitung saat searchTerm atau activeCategory berubah
-    const localFiltered = useMemo(() => {
-        let result = products
-
-        if (activeCategory !== "Semua") {
-            result = result.filter((p) => p.category === activeCategory)
-        }
-
-        if (!searchTerm) return result
-
-        const q = searchTerm.toLowerCase()
-        return result.filter(
-            (p) =>
-                p.name.toLowerCase().includes(q) ||
-                p.barcode.includes(searchTerm)
-        )
-    }, [products, searchTerm, activeCategory])
-
-    // Fallback ke API jika hasil lokal kosong dan ada query
+    // Fetch / Sync on mount if needed
     useEffect(() => {
-        if (searchTerm && localFiltered.length === 0) {
-            searchProducts(searchTerm)
-        } else {
-            clearSearch()
+        // Kita biarkan useProducts membaca dari Dexie.
+        // Jika butuh sync manual ke backend, gunakan tombol Refresh/Sync.
+        // Untuk sekarang, trigger sync pertama kali jika products kosong dan tidak loading
+        if (products.length === 0 && !isLoading && !isFetching) {
+            syncData()
         }
-    }, [searchTerm, localFiltered.length, searchProducts, clearSearch])
-
-    // Produk yang ditampilkan: lokal jika ada, fallback dari API
-    const displayProducts = useMemo(
-        () =>
-            searchTerm && localFiltered.length === 0 && searchResults.length > 0
-                ? searchResults
-                : localFiltered,
-        [searchTerm, localFiltered, searchResults]
-    )
-
-    // Fetch data on mount
-    useEffect(() => {
-        refetch()
-    }, [refetch])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
 
     return (
         <div className="flex h-full">
@@ -268,18 +244,19 @@ export default function POSDashboard() {
                                     Gagal memuat data
                                 </p>
                                 <p className="text-xs text-muted-foreground">
-                                    {error}
+                                    {error?.message || String(error)}
                                 </p>
                                 <Button
                                     type="button"
-                                    onClick={() => refetch()}
+                                    onClick={() => syncData()}
+                                    disabled={isSyncing}
                                     className="text-xs text-primary hover:underline"
                                     variant="ghost"
                                 >
-                                    Coba lagi
+                                    {isSyncing ? "Menyelaraskan..." : "Coba lagi"}
                                 </Button>
                             </div>
-                        ) : isSearching ? (
+                        ) : isFetching && products.length === 0 ? (
                             <div className="flex h-full animate-in flex-col items-center justify-center gap-3 text-center opacity-0 duration-500 fade-in">
                                 <Loader2 className="size-8 animate-spin text-primary" />
                                 <p className="text-sm font-medium text-muted-foreground">
@@ -289,7 +266,7 @@ export default function POSDashboard() {
                         ) : (
                             <div className="flex-1 animate-in overflow-hidden duration-300 fade-in">
                                 <ProductGrid
-                                    products={displayProducts}
+                                    products={products}
                                     searchQuery={searchTerm}
                                 />
                             </div>

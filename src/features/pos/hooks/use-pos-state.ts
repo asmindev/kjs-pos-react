@@ -19,7 +19,7 @@ export type PosPhase =
 export type PaymentMethod = "cash" | "card" | "transfer"
 
 export type SelectedCustomer = {
-    id: string | number
+    id: string
     name: string
     phone?: string
     street?: string
@@ -123,7 +123,7 @@ export const usePosState = create<PosState>((set, get) => ({
                 paymentMethod,
                 paidAmount,
                 changeAmount,
-                customerId: customer?.id,
+                customerId: customer?.id ? String(customer.id) : undefined,
                 customerName: customer?.name,
             })
 

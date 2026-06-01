@@ -25,7 +25,11 @@ import {
     X,
 } from "lucide-react"
 
-const paymentLabels = { cash: "Tunai", card: "Kartu", transfer: "Transfer" } as const
+const paymentLabels = {
+    cash: "Tunai",
+    card: "Kartu",
+    transfer: "Transfer",
+} as const
 const paymentKeys = ["cash", "card", "transfer"] as const
 
 const paymentIcons = {
@@ -68,7 +72,7 @@ const PaymentStage = memo(function PaymentStage() {
                             className="flex items-start justify-between text-sm"
                         >
                             <div className="flex flex-col">
-                                <span className="font-medium leading-none">
+                                <span className="leading-none font-medium">
                                     {item.product.name}
                                 </span>
                                 <span className="mt-1 text-xs text-muted-foreground">
@@ -78,7 +82,9 @@ const PaymentStage = memo(function PaymentStage() {
                             </div>
                             <span className="font-semibold tabular-nums">
                                 Rp{" "}
-                                {(item.quantity * item.product.price).toLocaleString("id-ID")}
+                                {(
+                                    item.quantity * item.product.price
+                                ).toLocaleString("id-ID")}
                             </span>
                         </div>
                     ))}
@@ -87,17 +93,23 @@ const PaymentStage = memo(function PaymentStage() {
                 <div className="space-y-1.5 text-sm">
                     <div className="flex justify-between text-muted-foreground">
                         <span>Subtotal</span>
-                        <span className="tabular-nums">Rp {subtotal.toLocaleString("id-ID")}</span>
+                        <span className="tabular-nums">
+                            Rp {subtotal.toLocaleString("id-ID")}
+                        </span>
                     </div>
                     {discount > 0 && (
                         <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
                             <span>Diskon</span>
-                            <span className="tabular-nums">- Rp {discount.toLocaleString("id-ID")}</span>
+                            <span className="tabular-nums">
+                                - Rp {discount.toLocaleString("id-ID")}
+                            </span>
                         </div>
                     )}
                     <div className="flex justify-between text-lg font-bold">
                         <span>Total</span>
-                        <span className="tabular-nums">Rp {total.toLocaleString("id-ID")}</span>
+                        <span className="tabular-nums">
+                            Rp {total.toLocaleString("id-ID")}
+                        </span>
                     </div>
                 </div>
             </div>
@@ -108,9 +120,11 @@ const PaymentStage = memo(function PaymentStage() {
                     <DialogHeader className="flex flex-row items-start justify-between">
                         <div className="space-y-1">
                             <DialogTitle>Pembayaran</DialogTitle>
-                            <DialogDescription>Pilih cara bayar</DialogDescription>
+                            <DialogDescription>
+                                Pilih cara bayar
+                            </DialogDescription>
                         </div>
-                        <CustomerModal className="w-[180px] mt-0" />
+                        <CustomerModal className="mt-0 w-45" />
                     </DialogHeader>
 
                     <div className="grid grid-cols-3 gap-2">
@@ -132,7 +146,10 @@ const PaymentStage = memo(function PaymentStage() {
 
                     {pm === "cash" && (
                         <div className="space-y-2 pt-2">
-                            <label htmlFor="paid-amount" className="text-xs font-medium">
+                            <label
+                                htmlFor="paid-amount"
+                                className="text-xs font-medium"
+                            >
                                 Jumlah Dibayar
                             </label>
                             <Input
@@ -140,21 +157,26 @@ const PaymentStage = memo(function PaymentStage() {
                                 type="number"
                                 placeholder="0"
                                 value={paid || ""}
-                                onChange={(e) => setPaid(Number(e.target.value) || 0)}
+                                onChange={(e) =>
+                                    setPaid(Number(e.target.value) || 0)
+                                }
                                 className="h-12 text-right text-xl font-bold"
                                 autoFocus
                             />
                             {change > 0 && (
                                 <div className="flex justify-between bg-emerald-500/10 px-4 py-2">
-                                    <span className="text-xs text-emerald-600 dark:text-emerald-400">Kembali:</span>
-                                    <span className="tabular-nums text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                                    <span className="text-xs text-emerald-600 dark:text-emerald-400">
+                                        Kembali:
+                                    </span>
+                                    <span className="text-sm font-bold text-emerald-600 tabular-nums dark:text-emerald-400">
                                         Rp {change.toLocaleString("id-ID")}
                                     </span>
                                 </div>
                             )}
                             {paid > 0 && paid < total && (
                                 <p className="text-[10px] text-destructive">
-                                    Kurang Rp {(total - paid).toLocaleString("id-ID")}
+                                    Kurang Rp{" "}
+                                    {(total - paid).toLocaleString("id-ID")}
                                 </p>
                             )}
                         </div>
@@ -162,17 +184,36 @@ const PaymentStage = memo(function PaymentStage() {
 
                     {pm && pm !== "cash" && (
                         <div className="mt-4 bg-muted p-4 text-center">
-                            <p className="text-sm font-semibold">{paymentLabels[pm as keyof typeof paymentLabels]}</p>
+                            <p className="text-sm font-semibold">
+                                {
+                                    paymentLabels[
+                                        pm as keyof typeof paymentLabels
+                                    ]
+                                }
+                            </p>
                             <p className="mt-1 text-xs text-muted-foreground">
-                                Pembayaran sebesar <strong>Rp {total.toLocaleString("id-ID")}</strong>
+                                Pembayaran sebesar{" "}
+                                <strong>
+                                    Rp {total.toLocaleString("id-ID")}
+                                </strong>
                             </p>
                         </div>
                     )}
                 </div>
 
                 <div className="flex gap-2 pt-4">
-                    <Button variant="outline" className="flex-1" onClick={reset}>Batal</Button>
-                    <Button className="flex-1 font-bold shadow-lg shadow-emerald-500/25" onClick={proc} disabled={!canPay}>
+                    <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={reset}
+                    >
+                        Batal
+                    </Button>
+                    <Button
+                        className="flex-1 font-bold shadow-lg shadow-emerald-500/25"
+                        onClick={proc}
+                        disabled={!canPay}
+                    >
                         Konfirmasi
                     </Button>
                 </div>
@@ -200,7 +241,11 @@ export function PaymentModal() {
             if (e.key === "Escape" && isLocked) e.preventDefault()
             if (e.key === "Enter" && phase === "success") finish()
             if (e.key === "Enter" && phase === "payment") {
-                const { paymentMethod: pm, paidAmount: p, processPayment: proc } = usePosState.getState()
+                const {
+                    paymentMethod: pm,
+                    paidAmount: p,
+                    processPayment: proc,
+                } = usePosState.getState()
                 const total = useCart.getState().getTotal()
                 if (pm && (pm !== "cash" || p >= total)) proc()
             }
@@ -221,8 +266,12 @@ export function PaymentModal() {
             <DialogContent
                 showCloseButton={!isLocked}
                 className="min-w-11/12"
-                onPointerDownOutside={(e) => { if (isLocked) e.preventDefault() }}
-                onEscapeKeyDown={(e) => { if (isLocked) e.preventDefault() }}
+                onPointerDownOutside={(e) => {
+                    if (isLocked) e.preventDefault()
+                }}
+                onEscapeKeyDown={(e) => {
+                    if (isLocked) e.preventDefault()
+                }}
             >
                 <div hidden={phase !== "payment"}>
                     <PaymentStage />
@@ -232,7 +281,9 @@ export function PaymentModal() {
                     <div className="space-y-4 py-8 text-center">
                         <Loader2 className="mx-auto size-12 animate-spin text-primary" />
                         <DialogTitle>Memproses...</DialogTitle>
-                        <DialogDescription>Mohon tunggu sebentar</DialogDescription>
+                        <DialogDescription>
+                            Mohon tunggu sebentar
+                        </DialogDescription>
                     </div>
                 </div>
 
@@ -260,23 +311,43 @@ const SuccessStage = memo(function SuccessStage() {
                 <Check className="size-8 text-emerald-500" />
             </div>
             <div>
-                <DialogTitle className="text-lg">Pembayaran Berhasil!</DialogTitle>
-                {ref && <Badge variant="secondary" className="mt-1">#{ref}</Badge>}
-                <DialogDescription className="mt-1">Total: Rp {total.toLocaleString("id-ID")}</DialogDescription>
+                <DialogTitle className="text-lg">
+                    Pembayaran Berhasil!
+                </DialogTitle>
+                {ref && (
+                    <Badge variant="secondary" className="mt-1">
+                        #{ref}
+                    </Badge>
+                )}
+                <DialogDescription className="mt-1">
+                    Total: Rp {total.toLocaleString("id-ID")}
+                </DialogDescription>
                 <div className="mt-2 flex items-center justify-center gap-1.5">
                     {synced ? (
-                        <Badge variant="secondary"><Check className="size-3" />Tersinkron ke Odoo</Badge>
+                        <Badge variant="secondary">
+                            <Check className="size-3" />
+                            Tersinkron ke Odoo
+                        </Badge>
                     ) : (
-                        <Badge variant="outline"><Clock className="size-3" />Tersimpan lokal — sync nanti</Badge>
+                        <Badge variant="outline">
+                            <Clock className="size-3" />
+                            Tersimpan lokal — sync nanti
+                        </Badge>
                     )}
                 </div>
             </div>
             <Separator />
             <div className="space-y-2">
-                <Button className="w-full font-bold shadow-lg shadow-emerald-500/25" onClick={finish}>
-                    <Printer className="size-4" />Cetak Struk
+                <Button
+                    className="w-full font-bold shadow-lg shadow-emerald-500/25"
+                    onClick={finish}
+                >
+                    <Printer className="size-4" />
+                    Cetak Struk
                 </Button>
-                <Button variant="outline" className="w-full" onClick={finish}>Transaksi Baru</Button>
+                <Button variant="outline" className="w-full" onClick={finish}>
+                    Transaksi Baru
+                </Button>
             </div>
         </div>
     )
@@ -293,8 +364,12 @@ const ErrorStage = memo(function ErrorStage() {
                 <X className="size-8 text-destructive" />
             </div>
             <DialogTitle>Pembayaran Gagal</DialogTitle>
-            <DialogDescription>{msg || "Terjadi kesalahan. Silakan coba lagi."}</DialogDescription>
-            <Button className="w-full font-bold" onClick={finish}>Transaksi Baru</Button>
+            <DialogDescription>
+                {msg || "Terjadi kesalahan. Silakan coba lagi."}
+            </DialogDescription>
+            <Button className="w-full font-bold" onClick={finish}>
+                Transaksi Baru
+            </Button>
         </div>
     )
 })

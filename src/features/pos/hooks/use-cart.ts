@@ -1,6 +1,6 @@
 import { create } from "zustand"
 import type { CartItem } from "../domain/models/cart-model"
-import type { Product } from "../domain/models/product-model"
+import type { Product } from "../domain/models/product.model"
 import {
     calculateSubtotal,
     calculateTotal,

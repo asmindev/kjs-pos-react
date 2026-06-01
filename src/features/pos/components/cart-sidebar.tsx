@@ -13,15 +13,13 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { CustomerModal } from "@/features/pos/components/customer-modal"
 import { PromoInput } from "@/features/pos/components/promo-input"
-import { ShoppingCart, Minus, Plus, X, Banknote } from "lucide-react"
+import { ShoppingCart, Banknote } from "lucide-react"
 import { calculateSubtotal } from "@/features/pos/domain/services/pricing-service"
 
 export function CartSidebar() {
     const items = useCart((s) => s.items)
     const selectedId = useCart((s) => s.selectedId)
     const selectItem = useCart((s) => s.selectItem)
-    const removeItem = useCart((s) => s.removeItem)
-    const updateQuantity = useCart((s) => s.updateQuantity)
     const phase = usePosState((s) => s.phase)
     const startPayment = usePosState((s) => s.startPayment)
 

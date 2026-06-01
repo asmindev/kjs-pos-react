@@ -8,7 +8,7 @@ import { Loader2, Check, X } from "lucide-react"
 
 export function AuthPage() {
     const navigate = useNavigate()
-    const { setToken, isAuthenticated, payload } = useAuth()
+    const { setToken, payload } = useAuth()
     const [status, setStatus] = useState<"loading" | "success" | "error">(
         "loading"
     )
