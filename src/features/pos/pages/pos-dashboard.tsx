@@ -145,49 +145,83 @@ export default function POSDashboard() {
                     </div>
 
                     <div className="flex w-full shrink-0 items-start justify-between pb-2">
-                        <div className="flex w-full">
-                            <Popover open={openCategory} onOpenChange={setOpenCategory}>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        role="combobox"
-                                        aria-expanded={openCategory}
-                                        className="w-full sm:w-[300px] justify-between font-normal bg-background"
-                                    >
-                                        <span className="truncate">{activeCategory}</span>
-                                        <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-[300px] p-0" align="start">
-                                    <Command>
-                                        <CommandInput placeholder="Cari kategori..." />
-                                        <CommandList>
-                                            <CommandEmpty>Kategori tidak ditemukan.</CommandEmpty>
-                                            <CommandGroup>
-                                                {categories.map((cat) => (
-                                                    <CommandItem
-                                                        key={cat}
-                                                        value={cat}
-                                                        onSelect={() => {
-                                                            setActiveCategory(cat)
-                                                            setOpenCategory(false)
-                                                        }}
+                        <ButtonGroup className="w-full flex-wrap gap-y-1">
+                            {(() => {
+                                const MAX_VISIBLE = 15
+                                const visible = categories.slice(0, MAX_VISIBLE)
+                                const overflow = categories.slice(MAX_VISIBLE)
+                                return (
+                                    <>
+                                        {visible.map((cat) => (
+                                            <Button
+                                                key={cat}
+                                                variant={
+                                                    activeCategory === cat
+                                                        ? "default"
+                                                        : "outline"
+                                                }
+                                                size="sm"
+                                                onClick={() =>
+                                                    setActiveCategory(cat)
+                                                }
+                                            >
+                                                {cat}
+                                            </Button>
+                                        ))}
+
+                                        {overflow.length > 0 && (
+                                            <Popover open={openCategory} onOpenChange={setOpenCategory}>
+                                                <PopoverTrigger asChild>
+                                                    <Button
+                                                        variant={overflow.includes(activeCategory) ? "default" : "outline"}
+                                                        size="sm"
+                                                        role="combobox"
+                                                        aria-expanded={openCategory}
+                                                        className={cn(
+                                                            "h-8 rounded-none text-xs transition-all",
+                                                            overflow.includes(activeCategory) 
+                                                                ? "" 
+                                                                : "bg-background hover:bg-muted hover:text-foreground"
+                                                        )}
                                                     >
-                                                        <Check
-                                                            className={cn(
-                                                                "mr-2 size-4 shrink-0",
-                                                                activeCategory === cat ? "opacity-100" : "opacity-0"
-                                                            )}
-                                                        />
-                                                        <span className="truncate">{cat}</span>
-                                                    </CommandItem>
-                                                ))}
-                                            </CommandGroup>
-                                        </CommandList>
-                                    </Command>
-                                </PopoverContent>
-                            </Popover>
-                        </div>
+                                                        {overflow.includes(activeCategory) ? activeCategory : "Lainnya"}
+                                                        <ChevronsUpDown className="ml-1 size-3 opacity-50" />
+                                                    </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-[200px] p-0" align="end">
+                                                    <Command>
+                                                        <CommandInput placeholder="Cari kategori..." />
+                                                        <CommandList>
+                                                            <CommandEmpty>Kategori tidak ditemukan.</CommandEmpty>
+                                                            <CommandGroup>
+                                                                {overflow.map((cat) => (
+                                                                    <CommandItem
+                                                                        key={cat}
+                                                                        value={cat}
+                                                                        onSelect={() => {
+                                                                            setActiveCategory(cat)
+                                                                            setOpenCategory(false)
+                                                                        }}
+                                                                    >
+                                                                        <Check
+                                                                            className={cn(
+                                                                                "mr-2 size-4 shrink-0",
+                                                                                activeCategory === cat ? "opacity-100" : "opacity-0"
+                                                                            )}
+                                                                        />
+                                                                        <span className="truncate">{cat}</span>
+                                                                    </CommandItem>
+                                                                ))}
+                                                            </CommandGroup>
+                                                        </CommandList>
+                                                    </Command>
+                                                </PopoverContent>
+                                            </Popover>
+                                        )}
+                                    </>
+                                )
+                            })()}
+                        </ButtonGroup>
 
                         {pendingCount > 0 && (
                             <div className="shrink-0 pl-2">
