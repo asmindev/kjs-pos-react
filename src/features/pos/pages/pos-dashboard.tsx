@@ -13,6 +13,7 @@ import {
     Store,
     Check,
     ChevronsUpDown,
+    RefreshCw,
 } from "lucide-react"
 import { useAuth } from "@/features/pos/hooks/use-auth"
 import { Button } from "@/shared/components/ui/button"
@@ -107,6 +108,21 @@ export default function POSDashboard() {
                                 </span>
                             </div>
                         )}
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2 text-[10px] font-medium"
+                            onClick={() => syncData()}
+                            disabled={isSyncing || !isOnline}
+                        >
+                            <RefreshCw
+                                className={cn(
+                                    "mr-1.5 size-3",
+                                    isSyncing && "animate-spin"
+                                )}
+                            />
+                            {isSyncing ? "Syncing..." : "Sync Data"}
+                        </Button>
                     </div>
                 </div>
 
