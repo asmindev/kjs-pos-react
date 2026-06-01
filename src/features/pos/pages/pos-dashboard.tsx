@@ -1,10 +1,9 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { BarcodeInput } from "@/features/pos/components/barcode-input"
 import { ProductGrid } from "@/features/pos/components/product-grid"
 import { CartSidebar } from "@/features/pos/components/cart-sidebar"
 import { CustomerModal } from "@/features/pos/components/customer-modal"
 import { PaymentModal } from "@/features/pos/components/payment-modal"
-import { usePosState } from "@/features/pos/hooks/use-pos-state"
 import { useSync } from "@/features/pos/hooks/use-sync"
 import { Badge } from "@/components/ui/badge"
 import { Printer, Loader2, User, Store } from "lucide-react"
@@ -14,6 +13,8 @@ import { useDebounce } from "@/shared/hooks/use-debounce"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { ButtonGroup } from "@/components/ui/button-group"
+import { RestrictedModal } from "@/features/pos/components/restricted-modal"
+import { useCart } from "@/features/pos/hooks/use-cart"
 
 const categories = [
     "Semua",
@@ -28,13 +29,60 @@ const categories = [
 
 export default function POSDashboard() {
     const [searchQuery, setSearchQuery] = useState("")
-    const debouncedSearch = useDebounce(searchQuery, 150)
+    const debouncedSearch = useDebounce(searchQuery, 300)
     const [activeCategory, setActiveCategory] = useState("Semua")
     const [showMore, setShowMore] = useState(false)
-    const { setCustomer } = usePosState()
     const { isOnline, pendingCount } = useSync()
-    const { products, isLoading, error, refetch } = usePosData()
+    const products = usePosData((s) => s.products)
+    const isLoading = usePosData((s) => s.isLoading)
+    const isSearching = usePosData((s) => s.isSearching)
+    const searchResults = usePosData((s) => s.searchResults)
+    const error = usePosData((s) => s.error)
+    const isUnauthorized = usePosData((s) => s.isUnauthorized)
+    const refetch = usePosData((s) => s.refetch)
+    const searchProducts = usePosData((s) => s.searchProducts)
+    const clearSearch = usePosData((s) => s.clearSearch)
     const { isAuthenticated, payload } = useAuth()
+    const addItem = useCart((s) => s.addItem)
+
+    const handleSearchEnter = () => {
+        if (!searchQuery) return
+        const match = products.find((p) => p.barcode === searchQuery)
+        if (match) {
+            addItem(match)
+            setSearchQuery("")
+            clearSearch()
+        }
+    }
+
+    // Filter lokal dari products cache — hanya dihitung saat debouncedSearch berubah
+    const localFiltered = useMemo(() => {
+        if (!debouncedSearch) return products
+        const q = debouncedSearch.toLowerCase()
+        return products.filter(
+            (p) =>
+                p.name.toLowerCase().includes(q) ||
+                p.barcode.includes(debouncedSearch)
+        )
+    }, [products, debouncedSearch])
+
+    // Fallback ke API jika hasil lokal kosong dan ada query
+    useEffect(() => {
+        if (debouncedSearch && localFiltered.length === 0) {
+            searchProducts(debouncedSearch)
+        } else {
+            clearSearch()
+        }
+    }, [debouncedSearch, localFiltered.length, searchProducts, clearSearch])
+
+    // Produk yang ditampilkan: lokal jika ada, fallback dari API
+    const displayProducts = useMemo(
+        () =>
+            debouncedSearch && localFiltered.length === 0 && searchResults.length > 0
+                ? searchResults
+                : localFiltered,
+        [debouncedSearch, localFiltered, searchResults]
+    )
 
     // Fetch data on mount
     useEffect(() => {
@@ -91,7 +139,11 @@ export default function POSDashboard() {
                     {/* Input Bar: Barcode + Customer */}
                     <div className="flex items-center gap-3">
                         <div className="flex-1 rounded-md transition-shadow focus-within:shadow-md">
-                            <BarcodeInput />
+                            <BarcodeInput 
+                                value={searchQuery}
+                                onChange={setSearchQuery}
+                                onEnter={handleSearchEnter}
+                            />
                         </div>
                         <div className="rounded-md transition-shadow focus-within:shadow-md">
                             <CustomerModal />
@@ -211,10 +263,17 @@ export default function POSDashboard() {
                                     Coba lagi
                                 </Button>
                             </div>
+                        ) : isSearching ? (
+                            <div className="flex h-full animate-in flex-col items-center justify-center gap-3 text-center opacity-0 duration-500 fade-in">
+                                <Loader2 className="size-8 animate-spin text-primary" />
+                                <p className="text-sm font-medium text-muted-foreground">
+                                    Mencari di Odoo...
+                                </p>
+                            </div>
                         ) : (
                             <div className="flex-1 animate-in overflow-hidden duration-300 fade-in">
-                                <ProductGrid
-                                    products={products}
+                            <ProductGrid
+                                    products={displayProducts}
                                     searchQuery={debouncedSearch}
                                 />
                             </div>
@@ -262,6 +321,13 @@ export default function POSDashboard() {
             </div>
 
             <PaymentModal />
+
+            {/* Modal tidak bisa ditutup saat 401 Unauthorized */}
+            <RestrictedModal
+                open={isUnauthorized}
+                userName={payload?.name}
+                userLogin={payload?.login}
+            />
         </div>
     )
 }

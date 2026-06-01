@@ -3,7 +3,13 @@ import { Button } from "@/components/ui/button"
 import { usePosState } from "@/features/pos/hooks/use-pos-state"
 import { Scan } from "lucide-react"
 
-export function BarcodeInput() {
+interface BarcodeInputProps {
+    value: string
+    onChange: (value: string) => void
+    onEnter?: () => void
+}
+
+export function BarcodeInput({ value, onChange, onEnter }: BarcodeInputProps) {
     const phase = usePosState((s) => s.phase)
     const startScanning = usePosState((s) => s.startScanning)
     const stopScanning = usePosState((s) => s.stopScanning)
@@ -20,6 +26,8 @@ export function BarcodeInput() {
                         : "Ketik atau scan barcode produk..."
                 }
                 className="h-11 pr-28 text-sm"
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
                 autoFocus
                 onFocus={() => startScanning()}
                 onBlur={() => {
@@ -31,7 +39,7 @@ export function BarcodeInput() {
                         e.currentTarget.blur()
                     }
                     if (e.key === "Enter") {
-                        e.currentTarget.value = ""
+                        if (onEnter) onEnter()
                     }
                 }}
             />

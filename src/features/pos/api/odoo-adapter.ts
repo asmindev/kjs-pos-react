@@ -14,6 +14,7 @@ type OdooResponse<T> = {
     ok: boolean
     data?: T
     error?: string
+    isUnauthorized?: boolean
 }
 
 async function odooFetch<T>(
@@ -42,6 +43,13 @@ async function odooFetch<T>(
         })
 
         if (!response.ok) {
+            if (response.status === 401) {
+                return {
+                    ok: false,
+                    error: "Unauthorized",
+                    isUnauthorized: true,
+                }
+            }
             return { ok: false, error: `HTTP ${response.status}` }
         }
 
@@ -74,7 +82,8 @@ export async function fetchProducts(): Promise<OdooResponse<OdooProduct[]>> {
     if (result.ok && result.data) {
         return { ok: true, data: result.data.products }
     }
-    return { ok: false, error: result.error }
+    // Teruskan isUnauthorized agar caller bisa deteksi 401
+    return { ok: false, error: result.error, isUnauthorized: result.isUnauthorized }
 }
 
 export async function fetchProductByBarcode(
@@ -87,6 +96,18 @@ export async function fetchProductByBarcode(
         return { ok: true, data: result.data.product }
     }
     return { ok: false, error: result.error }
+}
+
+export async function fetchProductsByQuery(
+    query: string
+): Promise<OdooResponse<OdooProduct[]>> {
+    const result = await odooFetch<{ products: OdooProduct[] }>(
+        `/api/products/search?q=${encodeURIComponent(query)}`
+    )
+    if (result.ok && result.data) {
+        return { ok: true, data: result.data.products }
+    }
+    return { ok: false, error: result.error, isUnauthorized: result.isUnauthorized }
 }
 
 // --- Customers ---
