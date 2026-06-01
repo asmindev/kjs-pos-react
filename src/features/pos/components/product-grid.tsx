@@ -1,4 +1,5 @@
-import { useMemo, memo, useRef } from "react"
+import { useMemo, memo, useRef, useState, useEffect } from "react"
+import { useVirtualizer } from "@tanstack/react-virtual"
 import type { Product } from "@/features/pos/domain/models/product.model"
 import { useCart } from "@/features/pos/hooks/use-cart"
 import { Card, CardContent } from "@/shared/components/ui/card"
@@ -96,18 +97,56 @@ export const ProductGrid = memo(function ProductGrid({
         )
     }, [products, searchQuery])
 
-    // Intersection Observer for infinite scrolling
-    const observer = useRef<IntersectionObserver | null>(null)
-    const bottomRef = (node: HTMLDivElement | null) => {
-        if (isFetchingNextPage) return
-        if (observer.current) observer.current.disconnect()
-        observer.current = new IntersectionObserver((entries) => {
-            if (entries[0].isIntersecting && hasNextPage) {
-                fetchNextPage()
-            }
+    const parentRef = useRef<HTMLDivElement>(null)
+    const [cols, setCols] = useState(2)
+
+    useEffect(() => {
+        if (!parentRef.current) return
+        const observer = new ResizeObserver((entries) => {
+            const width = entries[0].contentRect.width
+            if (width >= 1024) setCols(6) // lg
+            else if (width >= 640) setCols(4) // sm
+            else setCols(2)
         })
-        if (node) observer.current.observe(node)
-    }
+        observer.observe(parentRef.current)
+        return () => observer.disconnect()
+    }, [])
+
+    const rows = useMemo(() => {
+        const result = []
+        for (let i = 0; i < filtered.length; i += cols) {
+            result.push(filtered.slice(i, i + cols))
+        }
+        return result
+    }, [filtered, cols])
+
+    const rowVirtualizer = useVirtualizer({
+        count: hasNextPage ? rows.length + 1 : rows.length,
+        getScrollElement: () => parentRef.current,
+        estimateSize: () => 140, // Approximate height of ProductCard + gap
+        overscan: 4,
+    })
+
+    const virtualItems = rowVirtualizer.getVirtualItems()
+
+    useEffect(() => {
+        const lastItem = virtualItems[virtualItems.length - 1]
+        if (!lastItem) return
+
+        if (
+            lastItem.index >= rows.length - 1 &&
+            hasNextPage &&
+            !isFetchingNextPage
+        ) {
+            fetchNextPage()
+        }
+    }, [
+        hasNextPage,
+        fetchNextPage,
+        rows.length,
+        isFetchingNextPage,
+        virtualItems,
+    ])
 
     if (filtered.length === 0) {
         return (
@@ -129,19 +168,52 @@ export const ProductGrid = memo(function ProductGrid({
 
     return (
         <div className="flex h-full flex-col overflow-hidden bg-muted p-2">
-            <div className="flex-1 overflow-auto">
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6 pb-4">
-                    {filtered.map((product) => (
-                        <ProductCard
-                            key={product.id}
-                            product={product}
-                            onAdd={addItem}
-                        />
-                    ))}
-                </div>
-                {/* Sentinel for IntersectionObserver */}
-                <div ref={bottomRef} className="h-4 w-full flex items-center justify-center">
-                    {isFetchingNextPage && <span className="text-xs text-muted-foreground animate-pulse">Memuat...</span>}
+            <div ref={parentRef} className="flex-1 overflow-auto">
+                <div 
+                    className="relative w-full"
+                    style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
+                >
+                    {virtualItems.map((virtualRow) => {
+                        const isLoaderRow = virtualRow.index > rows.length - 1
+                        const rowProducts = rows[virtualRow.index]
+
+                        if (isLoaderRow) {
+                            return (
+                                <div
+                                    key={virtualRow.key}
+                                    className="absolute top-0 left-0 w-full flex items-center justify-center pb-4"
+                                    style={{
+                                        height: `${virtualRow.size}px`,
+                                        transform: `translateY(${virtualRow.start}px)`,
+                                    }}
+                                >
+                                    <span className="text-xs text-muted-foreground animate-pulse">Memuat...</span>
+                                </div>
+                            )
+                        }
+
+                        return (
+                            <div
+                                key={virtualRow.key}
+                                ref={rowVirtualizer.measureElement}
+                                data-index={virtualRow.index}
+                                className="absolute top-0 left-0 w-full pb-3"
+                                style={{
+                                    transform: `translateY(${virtualRow.start}px)`,
+                                }}
+                            >
+                                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6 h-full">
+                                    {rowProducts.map((product) => (
+                                        <ProductCard
+                                            key={product.id}
+                                            product={product}
+                                            onAdd={addItem}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        )
+                    })}
                 </div>
             </div>
         </div>

@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect, memo } from "react"
+import { useVirtualizer } from "@tanstack/react-virtual"
 import {
     Search,
     User,
@@ -18,13 +19,10 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/shared/components/ui/dialog"
-import { ScrollArea } from "@/shared/components/ui/scroll-area"
 import { usePosState } from "@/features/pos/hooks/use-pos-state"
 import { useCustomers } from "@/features/pos/hooks/use-customers"
 
 type CustomerModalProps = { className?: string }
-
-
 
 export const CustomerModal = memo(function CustomerModal({
     className,
@@ -35,13 +33,8 @@ export const CustomerModal = memo(function CustomerModal({
 
     const customer = usePosState((s) => s.customer)
     const setCustomer = usePosState((s) => s.setCustomer)
-    const {
-        data,
-        isLoading,
-        hasNextPage,
-        fetchNextPage,
-        isFetchingNextPage
-    } = useCustomers(search)
+    const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } =
+        useCustomers(search)
 
     const allCustomers = useMemo(() => {
         return data?.pages.flatMap((page) => page) ?? []
@@ -50,18 +43,35 @@ export const CustomerModal = memo(function CustomerModal({
     // Local state for modal selection before confirming
     const [localSelected, setLocalSelected] = useState<typeof customer>(null)
 
-    // Intersection Observer for infinite scrolling
-    const observer = useRef<IntersectionObserver | null>(null)
-    const bottomRef = (node: HTMLDivElement | null) => {
-        if (isFetchingNextPage) return
-        if (observer.current) observer.current.disconnect()
-        observer.current = new IntersectionObserver((entries) => {
-            if (entries[0].isIntersecting && hasNextPage) {
-                fetchNextPage()
-            }
-        })
-        if (node) observer.current.observe(node)
-    }
+    const parentRef = useRef<HTMLDivElement>(null)
+
+    const rowVirtualizer = useVirtualizer({
+        count: hasNextPage ? allCustomers.length + 1 : allCustomers.length,
+        getScrollElement: () => parentRef.current,
+        estimateSize: () => 64, // approximate height for modal list item
+        overscan: 5,
+    })
+
+    const virtualItems = rowVirtualizer.getVirtualItems()
+
+    useEffect(() => {
+        const lastItem = virtualItems[virtualItems.length - 1]
+        if (!lastItem) return
+
+        if (
+            lastItem.index >= allCustomers.length - 1 &&
+            hasNextPage &&
+            !isFetchingNextPage
+        ) {
+            fetchNextPage()
+        }
+    }, [
+        hasNextPage,
+        fetchNextPage,
+        allCustomers.length,
+        isFetchingNextPage,
+        virtualItems,
+    ])
 
     // Focus search on open, reset on close, sync local selection
     useEffect(() => {
@@ -163,78 +173,110 @@ export const CustomerModal = memo(function CustomerModal({
                     </div>
 
                     {/* Customer List */}
-                    <ScrollArea className="max-h-[50vh]">
+                    <div
+                        ref={parentRef}
+                        className="max-h-[50vh] overflow-y-auto"
+                    >
                         {allCustomers.length === 0 && !isLoading ? (
                             <p className="py-12 text-center text-sm text-muted-foreground">
                                 Tidak ditemukan
                             </p>
                         ) : (
-                            <div className="space-y-1 py-1">
-                                {allCustomers.map((c) => {
+                            <div
+                                className="relative w-full"
+                                style={{
+                                    height: `${rowVirtualizer.getTotalSize()}px`,
+                                }}
+                            >
+                                {virtualItems.map((virtualRow) => {
+                                    const isLoaderRow =
+                                        virtualRow.index >
+                                        allCustomers.length - 1
+                                    const c = allCustomers[virtualRow.index]
+
+                                    if (isLoaderRow) {
+                                        return (
+                                            <div
+                                                key={virtualRow.key}
+                                                className="absolute top-0 left-0 w-full"
+                                                style={{
+                                                    height: `${virtualRow.size}px`,
+                                                    transform: `translateY(${virtualRow.start}px)`,
+                                                }}
+                                            >
+                                                <div className="animate-pulse py-3 text-center text-xs text-muted-foreground">
+                                                    Memuat lebih banyak...
+                                                </div>
+                                            </div>
+                                        )
+                                    }
+
                                     const cAddress = ""
                                     const isSelected =
                                         localSelected?.id === c.id
 
                                     return (
-                                        <button
-                                            key={c.id}
-                                            type="button"
-                                            className={cn(
-                                                "flex w-full items-start gap-3 rounded-sm px-3 py-3 text-left transition-colors hover:bg-muted",
-                                                isSelected && "bg-primary/10"
-                                            )}
-                                            onClick={() =>
-                                                setLocalSelected(
-                                                    isSelected ? null : c
-                                                )
-                                            }
+                                        <div
+                                            key={virtualRow.key}
+                                            className="absolute top-0 left-0 w-full"
+                                            style={{
+                                                height: `${virtualRow.size}px`,
+                                                transform: `translateY(${virtualRow.start}px)`,
+                                            }}
                                         >
-                                            <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
-                                                <User className="size-4 text-muted-foreground" />
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-sm font-medium">
-                                                        {c.name}
-                                                    </span>
-                                                    {isSelected && (
-                                                        <Check className="size-4 text-primary" />
-                                                    )}
+                                            <button
+                                                type="button"
+                                                className={cn(
+                                                    "flex h-full w-full items-start gap-3 rounded-sm px-3 py-3 text-left transition-colors hover:bg-muted",
+                                                    isSelected &&
+                                                        "bg-primary/10"
+                                                )}
+                                                onClick={() =>
+                                                    setLocalSelected(
+                                                        isSelected ? null : c
+                                                    )
+                                                }
+                                            >
+                                                <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
+                                                    <User className="size-4 text-muted-foreground" />
                                                 </div>
-                                                <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] text-muted-foreground">
-                                                    {c.phone && (
-                                                        <span className="inline-flex items-center gap-1">
-                                                            <Phone className="size-3" />
-                                                            {c.phone}
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-sm font-medium">
+                                                            {c.name}
                                                         </span>
-                                                    )}
-                                                    {c.email && (
-                                                        <span className="inline-flex items-center gap-1">
-                                                            <Mail className="size-3" />
-                                                            {c.email}
-                                                        </span>
-                                                    )}
-                                                    {cAddress && (
-                                                        <span className="inline-flex items-center gap-1">
-                                                            <MapPin className="size-3" />
-                                                            {cAddress}
-                                                        </span>
-                                                    )}
+                                                        {isSelected && (
+                                                            <Check className="size-4 text-primary" />
+                                                        )}
+                                                    </div>
+                                                    <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] text-muted-foreground">
+                                                        {c.phone && (
+                                                            <span className="inline-flex items-center gap-1">
+                                                                <Phone className="size-3" />
+                                                                {c.phone}
+                                                            </span>
+                                                        )}
+                                                        {c.email && (
+                                                            <span className="inline-flex items-center gap-1">
+                                                                <Mail className="size-3" />
+                                                                {c.email}
+                                                            </span>
+                                                        )}
+                                                        {cAddress && (
+                                                            <span className="inline-flex items-center gap-1">
+                                                                <MapPin className="size-3" />
+                                                                {cAddress}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </button>
+                                            </button>
+                                        </div>
                                     )
                                 })}
-                                {isFetchingNextPage && (
-                                    <div className="py-3 text-center text-xs text-muted-foreground animate-pulse">
-                                        Memuat lebih banyak...
-                                    </div>
-                                )}
-                                {/* Sentinel for IntersectionObserver */}
-                                <div ref={bottomRef} className="h-4 w-full" />
                             </div>
                         )}
-                    </ScrollArea>
+                    </div>
 
                     <div className="flex items-center justify-between border-t pt-4">
                         <div className="flex-1 truncate pr-4">

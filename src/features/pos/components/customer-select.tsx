@@ -1,4 +1,5 @@
 import { useState, memo, useMemo, useRef, useEffect } from "react"
+import { useVirtualizer } from "@tanstack/react-virtual"
 import { Check, ChevronsUpDown, User, X, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/shared/components/ui/button"
@@ -7,7 +8,6 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/shared/components/ui/popover"
-import { ScrollArea } from "@/shared/components/ui/scroll-area"
 import { usePosState } from "@/features/pos/hooks/use-pos-state"
 import { useCustomers } from "@/features/pos/hooks/use-customers"
 
@@ -29,18 +29,35 @@ export const CustomerSelect = memo(function CustomerSelect({
         return data?.pages.flatMap((page) => page) ?? []
     }, [data])
 
-    // Intersection Observer for infinite scrolling
-    const observer = useRef<IntersectionObserver | null>(null)
-    const bottomRef = (node: HTMLElement | null) => {
-        if (isFetchingNextPage) return
-        if (observer.current) observer.current.disconnect()
-        observer.current = new IntersectionObserver((entries) => {
-            if (entries[0].isIntersecting && hasNextPage) {
-                fetchNextPage()
-            }
-        })
-        if (node) observer.current.observe(node)
-    }
+    const parentRef = useRef<HTMLDivElement>(null)
+
+    const rowVirtualizer = useVirtualizer({
+        count: hasNextPage ? allCustomers.length + 1 : allCustomers.length,
+        getScrollElement: () => parentRef.current,
+        estimateSize: () => 48,
+        overscan: 5,
+    })
+
+    const virtualItems = rowVirtualizer.getVirtualItems()
+
+    useEffect(() => {
+        const lastItem = virtualItems[virtualItems.length - 1]
+        if (!lastItem) return
+
+        if (
+            lastItem.index >= allCustomers.length - 1 &&
+            hasNextPage &&
+            !isFetchingNextPage
+        ) {
+            fetchNextPage()
+        }
+    }, [
+        hasNextPage,
+        fetchNextPage,
+        allCustomers.length,
+        isFetchingNextPage,
+        virtualItems,
+    ])
 
     // Focus input saat popover terbuka
     useEffect(() => {
@@ -114,55 +131,76 @@ export const CustomerSelect = memo(function CustomerSelect({
                 </div>
 
                 {/* Results */}
-                <ScrollArea className="max-h-64">
+                <div ref={parentRef} className="max-h-64 overflow-y-auto">
                     {allCustomers.length === 0 && !isLoading ? (
                         <p className="px-3 py-6 text-center text-xs text-muted-foreground">
                             Tidak ditemukan
                         </p>
                     ) : (
-                        <ul className="p-1">
-                            {allCustomers.map((c) => (
-                                <li key={c.id}>
-                                    <button
-                                        type="button"
-                                        className={cn(
-                                            "flex w-full items-center justify-between rounded-sm px-3 py-2 text-left text-xs transition-colors hover:bg-muted",
-                                            customer?.id === c.id &&
-                                                "bg-primary/10"
-                                        )}
-                                        onClick={() => {
-                                            setCustomer(
-                                                customer?.id === c.id ? null : c
-                                            )
-                                            setOpen(false)
+                        <ul
+                            className="relative w-full p-1"
+                            style={{
+                                height: `${rowVirtualizer.getTotalSize()}px`,
+                            }}
+                        >
+                            {virtualItems.map((virtualRow) => {
+                                const isLoaderRow =
+                                    virtualRow.index > allCustomers.length - 1
+                                const c = allCustomers[virtualRow.index]
+
+                                return (
+                                    <li
+                                        key={virtualRow.key}
+                                        className="absolute top-0 left-0 w-full"
+                                        style={{
+                                            height: `${virtualRow.size}px`,
+                                            transform: `translateY(${virtualRow.start}px)`,
                                         }}
                                     >
-                                        <div className="flex flex-col gap-0.5">
-                                            <span className="font-medium">
-                                                {c.name}
-                                            </span>
-                                            {c.phone && (
-                                                <span className="text-[10px] text-muted-foreground">
-                                                    {c.phone}
+                                        {isLoaderRow ? (
+                                            <div className="flex h-full items-center justify-center">
+                                                <span className="animate-pulse px-3 py-2 text-center text-[10px] text-muted-foreground">
+                                                    Memuat lebih banyak...
                                                 </span>
-                                            )}
-                                        </div>
-                                        {customer?.id === c.id && (
-                                            <Check className="size-4" />
+                                            </div>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                className={cn(
+                                                    "flex h-full w-full items-center justify-between rounded-sm px-3 py-2 text-left text-xs transition-colors hover:bg-muted",
+                                                    customer?.id === c.id &&
+                                                        "bg-primary/10"
+                                                )}
+                                                onClick={() => {
+                                                    setCustomer(
+                                                        customer?.id === c.id
+                                                            ? null
+                                                            : c
+                                                    )
+                                                    setOpen(false)
+                                                }}
+                                            >
+                                                <div className="flex flex-col gap-0.5">
+                                                    <span className="font-medium">
+                                                        {c.name}
+                                                    </span>
+                                                    {c.phone && (
+                                                        <span className="text-[10px] text-muted-foreground">
+                                                            {c.phone}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {customer?.id === c.id && (
+                                                    <Check className="size-4" />
+                                                )}
+                                            </button>
                                         )}
-                                    </button>
-                                </li>
-                            ))}
-                            {isFetchingNextPage && (
-                                <li className="animate-pulse px-3 py-2 text-center text-[10px] text-muted-foreground">
-                                    Memuat lebih banyak...
-                                </li>
-                            )}
-                            {/* Sentinel for IntersectionObserver */}
-                            <li ref={bottomRef} className="h-1 w-full" />
+                                    </li>
+                                )
+                            })}
                         </ul>
                     )}
-                </ScrollArea>
+                </div>
             </PopoverContent>
         </Popover>
     )
