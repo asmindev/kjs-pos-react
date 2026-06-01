@@ -43,11 +43,11 @@ export const CustomerModal = memo(function CustomerModal({
     // Local state for modal selection before confirming
     const [localSelected, setLocalSelected] = useState<typeof customer>(null)
 
-    const parentRef = useRef<HTMLDivElement>(null)
+    const [parentRef, setParentRef] = useState<HTMLDivElement | null>(null)
 
     const rowVirtualizer = useVirtualizer({
         count: hasNextPage ? allCustomers.length + 1 : allCustomers.length,
-        getScrollElement: () => parentRef.current,
+        getScrollElement: () => parentRef,
         estimateSize: () => 64, // approximate height for modal list item
         overscan: 5,
     })
@@ -174,7 +174,7 @@ export const CustomerModal = memo(function CustomerModal({
 
                     {/* Customer List */}
                     <div
-                        ref={parentRef}
+                        ref={setParentRef}
                         className="max-h-[50vh] overflow-y-auto"
                     >
                         {allCustomers.length === 0 && !isLoading ? (

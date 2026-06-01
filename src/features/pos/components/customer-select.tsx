@@ -29,11 +29,11 @@ export const CustomerSelect = memo(function CustomerSelect({
         return data?.pages.flatMap((page) => page) ?? []
     }, [data])
 
-    const parentRef = useRef<HTMLDivElement>(null)
+    const [parentRef, setParentRef] = useState<HTMLDivElement | null>(null)
 
     const rowVirtualizer = useVirtualizer({
         count: hasNextPage ? allCustomers.length + 1 : allCustomers.length,
-        getScrollElement: () => parentRef.current,
+        getScrollElement: () => parentRef,
         estimateSize: () => 48,
         overscan: 5,
     })
@@ -131,7 +131,7 @@ export const CustomerSelect = memo(function CustomerSelect({
                 </div>
 
                 {/* Results */}
-                <div ref={parentRef} className="max-h-64 overflow-y-auto">
+                <div ref={setParentRef} className="max-h-64 overflow-y-auto">
                     {allCustomers.length === 0 && !isLoading ? (
                         <p className="px-3 py-6 text-center text-xs text-muted-foreground">
                             Tidak ditemukan
