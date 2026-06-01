@@ -31,6 +31,7 @@ export type CachedProduct = {
     name: string
     price: number
     stock: number
+    category: string
     cachedAt: number
 }
 
@@ -59,6 +60,14 @@ export class POSDatabase extends Dexie {
             syncQueue: "++id, transactionRef, retries, lastAttempt",
             cachedProducts: "id, barcode, name",
             cachedCustomers: "id, name",
+            cachedCategories: "id, name",
+        })
+
+        this.version(3).stores({
+            transactions: "++id, reference, syncStatus, createdAt, customerId",
+            syncQueue: "++id, transactionRef, retries, lastAttempt",
+            cachedProducts: "id, barcode, name, category, cachedAt",
+            cachedCustomers: "id, name, email, phone, barcode",
             cachedCategories: "id, name",
             keyValueCache: "key",
         })
