@@ -1,13 +1,13 @@
 import { useState, memo, useMemo, useRef, useEffect } from "react"
 import { Check, ChevronsUpDown, User, X, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+import { Button } from "@/shared/components/ui/button"
 import {
     Popover,
     PopoverContent,
     PopoverTrigger,
-} from "@/components/ui/popover"
-import { ScrollArea } from "@/components/ui/scroll-area"
+} from "@/shared/components/ui/popover"
+import { ScrollArea } from "@/shared/components/ui/scroll-area"
 import { usePosState } from "@/features/pos/hooks/use-pos-state"
 import { useCustomers } from "@/features/pos/hooks/use-customers"
 

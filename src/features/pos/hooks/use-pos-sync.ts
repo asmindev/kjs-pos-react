@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { productRepository } from "../repository/product-repository"
-import { customerRepository } from "../repository/customer-repository"
-import { categoryRepository } from "../repository/category-repository"
+import { productRepository } from "../repository/product.repository"
+import { customerRepository } from "../repository/customer.repository"
+import { categoryRepository } from "../repository/category.repository"
 
 export function usePosSync() {
     const queryClient = useQueryClient()

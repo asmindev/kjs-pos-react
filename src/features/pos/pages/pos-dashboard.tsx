@@ -1,82 +1,61 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from "react"
-import {
-    BarcodeInput,
-    type BarcodeInputRef,
-} from "@/features/pos/components/barcode-input"
+import { usePosDashboard } from "@/features/pos/hooks/use-pos-dashboard"
+import { BarcodeInput } from "@/features/pos/components/barcode-input"
 import { ProductGrid } from "@/features/pos/components/product-grid"
 import { CartSidebar } from "@/features/pos/components/cart-sidebar"
 import { CustomerModal } from "@/features/pos/components/customer-modal"
 import { PaymentModal } from "@/features/pos/components/payment-modal"
 import { useSync } from "@/features/pos/hooks/use-sync"
-import { Badge } from "@/components/ui/badge"
-import { Printer, Loader2, User, Store, Check, ChevronsUpDown } from "lucide-react"
+import { Badge } from "@/shared/components/ui/badge"
+import {
+    Printer,
+    Loader2,
+    User,
+    Store,
+    Check,
+    ChevronsUpDown,
+} from "lucide-react"
 import { useAuth } from "@/features/pos/hooks/use-auth"
-import { useProducts } from "@/features/pos/hooks/use-products"
-import { useCategories } from "@/features/pos/hooks/use-categories"
-import { usePosSync } from "@/features/pos/hooks/use-pos-sync"
-import { Button } from "@/components/ui/button"
+import { Button } from "@/shared/components/ui/button"
 import { cn } from "@/lib/utils"
-import { ButtonGroup } from "@/components/ui/button-group"
+import { ButtonGroup } from "@/shared/components/ui/button-group"
 import { RestrictedModal } from "@/features/pos/components/restricted-modal"
-import { useCart } from "@/features/pos/hooks/use-cart"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command"
-
-
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/shared/components/ui/popover"
+import {
+    Command,
+    CommandInput,
+    CommandList,
+    CommandEmpty,
+    CommandGroup,
+    CommandItem,
+} from "@/shared/components/ui/command"
 
 export default function POSDashboard() {
-    const [searchTerm, setSearchTerm] = useState("")
-    const barcodeRef = useRef<BarcodeInputRef>(null)
-    const [activeCategory, setActiveCategory] = useState("Semua")
-    const [openCategory, setOpenCategory] = useState(false)
+    const {
+        searchTerm,
+        activeCategory,
+        setActiveCategory,
+        openCategory,
+        setOpenCategory,
+        barcodeRef,
+        products,
+        isLoading,
+        error,
+        isFetching,
+        categories,
+        isSyncing,
+        syncData,
+        handleSearch,
+        handleEnter,
+    } = usePosDashboard()
+
     const { isOnline, pendingCount } = useSync()
-    
-    // TanStack Query Hooks
-    const { data: products = [], isLoading, error, isFetching } = useProducts(searchTerm, activeCategory)
-    const { data: categoriesData = [] } = useCategories()
-    const { mutate: syncData, isPending: isSyncing } = usePosSync()
-    
-    // Derivasi kategori dengan "Semua" di awal
-    const categories = useMemo(() => {
-        const names = categoriesData.map(c => c.name)
-        return ["Semua", ...Array.from(new Set(names))]
-    }, [categoriesData])
-
-    const { isAuthenticated, payload } = useAuth()
-    const addItem = useCart((s) => s.addItem)
-
-    // Cek apakah baru saja di-kick karena 401 (terjadi saat refresh gagal di odoo-adapter)
+    const isAuthenticated = useAuth((s) => s.isAuthenticated)
+    const payload = useAuth((s) => s.payload)
     const isUnauthorized = !isAuthenticated
-
-    // Dipanggil dari BarcodeInput setelah debounce 300ms
-    const handleSearch = useCallback((query: string) => {
-        setSearchTerm(query)
-    }, [])
-
-    // Dipanggil saat Enter ditekan
-    const handleEnter = useCallback(
-        (currentValue: string) => {
-            if (!currentValue) return
-            const match = products.find((p) => p.barcode === currentValue)
-            if (match) {
-                addItem(match)
-                barcodeRef.current?.clear()
-                setSearchTerm("")
-            }
-        },
-        [products, addItem]
-    )
-
-    const hasAttemptedSync = useRef(false)
-
-    // Fetch / Sync on mount if needed
-    useEffect(() => {
-        // Jika products kosong dan query Dexie sudah selesai, trigger sync 1x
-        if (products.length === 0 && !isLoading && !isFetching && !hasAttemptedSync.current) {
-            hasAttemptedSync.current = true
-            syncData()
-        }
-    }, [products.length, isLoading, isFetching, syncData])
 
     return (
         <div className="flex h-full">
@@ -170,48 +149,88 @@ export default function POSDashboard() {
                                         ))}
 
                                         {overflow.length > 0 && (
-                                            <Popover open={openCategory} onOpenChange={setOpenCategory}>
+                                            <Popover
+                                                open={openCategory}
+                                                onOpenChange={setOpenCategory}
+                                            >
                                                 <PopoverTrigger asChild>
                                                     <Button
-                                                        variant={overflow.includes(activeCategory) ? "default" : "outline"}
+                                                        variant={
+                                                            overflow.includes(
+                                                                activeCategory
+                                                            )
+                                                                ? "default"
+                                                                : "outline"
+                                                        }
                                                         size="sm"
                                                         role="combobox"
-                                                        aria-expanded={openCategory}
+                                                        aria-expanded={
+                                                            openCategory
+                                                        }
                                                         className={cn(
                                                             "h-8 rounded-none text-xs transition-all",
-                                                            overflow.includes(activeCategory) 
-                                                                ? "" 
+                                                            overflow.includes(
+                                                                activeCategory
+                                                            )
+                                                                ? ""
                                                                 : "bg-background hover:bg-muted hover:text-foreground"
                                                         )}
                                                     >
-                                                        {overflow.includes(activeCategory) ? activeCategory : "Lainnya"}
+                                                        {overflow.includes(
+                                                            activeCategory
+                                                        )
+                                                            ? activeCategory
+                                                            : "Lainnya"}
                                                         <ChevronsUpDown className="ml-1 size-3 opacity-50" />
                                                     </Button>
                                                 </PopoverTrigger>
-                                                <PopoverContent className="w-[200px] p-0" align="end">
+                                                <PopoverContent
+                                                    className="w-50 p-0"
+                                                    align="end"
+                                                >
                                                     <Command>
                                                         <CommandInput placeholder="Cari kategori..." />
                                                         <CommandList>
-                                                            <CommandEmpty>Kategori tidak ditemukan.</CommandEmpty>
+                                                            <CommandEmpty>
+                                                                Kategori tidak
+                                                                ditemukan.
+                                                            </CommandEmpty>
                                                             <CommandGroup>
-                                                                {overflow.map((cat) => (
-                                                                    <CommandItem
-                                                                        key={cat}
-                                                                        value={cat}
-                                                                        onSelect={() => {
-                                                                            setActiveCategory(cat)
-                                                                            setOpenCategory(false)
-                                                                        }}
-                                                                    >
-                                                                        <Check
-                                                                            className={cn(
-                                                                                "mr-2 size-4 shrink-0",
-                                                                                activeCategory === cat ? "opacity-100" : "opacity-0"
-                                                                            )}
-                                                                        />
-                                                                        <span className="truncate">{cat}</span>
-                                                                    </CommandItem>
-                                                                ))}
+                                                                {overflow.map(
+                                                                    (cat) => (
+                                                                        <CommandItem
+                                                                            key={
+                                                                                cat
+                                                                            }
+                                                                            value={
+                                                                                cat
+                                                                            }
+                                                                            onSelect={() => {
+                                                                                setActiveCategory(
+                                                                                    cat
+                                                                                )
+                                                                                setOpenCategory(
+                                                                                    false
+                                                                                )
+                                                                            }}
+                                                                        >
+                                                                            <Check
+                                                                                className={cn(
+                                                                                    "mr-2 size-4 shrink-0",
+                                                                                    activeCategory ===
+                                                                                        cat
+                                                                                        ? "opacity-100"
+                                                                                        : "opacity-0"
+                                                                                )}
+                                                                            />
+                                                                            <span className="truncate">
+                                                                                {
+                                                                                    cat
+                                                                                }
+                                                                            </span>
+                                                                        </CommandItem>
+                                                                    )
+                                                                )}
                                                             </CommandGroup>
                                                         </CommandList>
                                                     </Command>
@@ -261,7 +280,9 @@ export default function POSDashboard() {
                                     className="text-xs text-primary hover:underline"
                                     variant="ghost"
                                 >
-                                    {isSyncing ? "Menyelaraskan..." : "Coba lagi"}
+                                    {isSyncing
+                                        ? "Menyelaraskan..."
+                                        : "Coba lagi"}
                                 </Button>
                             </div>
                         ) : isFetching && products.length === 0 ? (

@@ -1,4 +1,4 @@
-import { db, type LocalTransaction, type SyncStatus } from "./index"
+import { db, type LocalTransaction, type SyncStatus } from "@/infrastructure/database/dexie.config"
 
 function generateReference(): string {
     const now = new Date()
@@ -14,7 +14,7 @@ export async function saveTransactionLocal(
     const transaction: LocalTransaction = {
         ...data,
         reference: generateReference(),
-        syncStatus: "pending",
+        syncStatus: "draft",
         createdAt: Date.now(),
     }
 
@@ -22,9 +22,13 @@ export async function saveTransactionLocal(
 
     // Also add to sync queue
     await db.syncQueue.add({
-        transactionRef: transaction.reference,
-        retries: 0,
-        lastAttempt: 0,
+        id: crypto.randomUUID(),
+        type: "transaction",
+        payload: { reference: transaction.reference },
+        priority: 1,
+        retryCount: 0,
+        maxRetries: 3,
+        createdAt: new Date().toISOString(),
     })
 
     return { ...transaction, id }
@@ -35,7 +39,7 @@ export async function getPendingSyncCount(): Promise<number> {
 }
 
 export async function getPendingTransactions(): Promise<LocalTransaction[]> {
-    return db.transactions.where("syncStatus").equals("pending").toArray()
+    return db.transactions.where("syncStatus").equals("draft").toArray()
 }
 
 export async function markSynced(reference: string): Promise<void> {
@@ -44,7 +48,10 @@ export async function markSynced(reference: string): Promise<void> {
         .equals(reference)
         .modify({ syncStatus: "synced", syncedAt: Date.now() })
 
-    await db.syncQueue.where("transactionRef").equals(reference).delete()
+    const jobs = await db.syncQueue.filter(j => j.type === "transaction" && (j.payload as any).reference === reference).toArray()
+    for (const job of jobs) {
+        await db.syncQueue.delete(job.id)
+    }
 }
 
 export async function markFailed(
@@ -56,17 +63,19 @@ export async function markFailed(
         .equals(reference)
         .modify({ syncStatus: "failed", errorMessage })
 
-    // Increment retries
-    const queueItem = await db.syncQueue
-        .where("transactionRef")
-        .equals(reference)
-        .first()
-
-    if (queueItem && queueItem.id) {
-        await db.syncQueue.update(queueItem.id, {
-            retries: queueItem.retries + 1,
-            lastAttempt: Date.now(),
-        })
+    const jobs = await db.syncQueue.filter(j => j.type === "transaction" && (j.payload as any).reference === reference).toArray()
+    if (jobs.length > 0) {
+        const job = jobs[0]
+        const nextRetry = job.retryCount + 1
+        if (nextRetry > job.maxRetries) {
+            await db.transactions.where("reference").equals(reference).modify({ syncStatus: "dead-letter", errorMessage })
+            await db.syncQueue.delete(job.id)
+        } else {
+            await db.syncQueue.update(job.id, {
+                retryCount: nextRetry,
+                lastAttempt: new Date().toISOString(),
+            })
+        }
     }
 }
 

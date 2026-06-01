@@ -1,9 +1,15 @@
-import { db } from "../db"
+import { db } from "@/infrastructure/database/dexie.config"
 import type { Customer } from "../domain/models/customer.model"
 import { CustomerSchema } from "../domain/models/customer.model"
-import { fetchCustomers } from "../api/odoo-adapter"
+import { fetchCustomers } from "../api/odoo.adapter"
 
-export const customerRepository = {
+export interface ICustomerRepository {
+    list(): Promise<Customer[]>
+    search(query: string): Promise<Customer[]>
+    sync(): Promise<number>
+}
+
+export class CustomerRepository implements ICustomerRepository {
     async list(): Promise<Customer[]> {
         const results = await db.cachedCustomers.toArray()
         return results
@@ -12,7 +18,7 @@ export const customerRepository = {
                 return parsed.success ? parsed.data : null
             })
             .filter(Boolean) as Customer[]
-    },
+    }
 
     async search(query: string): Promise<Customer[]> {
         const q = query.toLowerCase()
@@ -31,7 +37,7 @@ export const customerRepository = {
                 return parsed.success ? parsed.data : null
             })
             .filter(Boolean) as Customer[]
-    },
+    }
 
     async sync(): Promise<number> {
         const response = await fetchCustomers()
@@ -51,5 +57,7 @@ export const customerRepository = {
             return validated.length
         }
         throw new Error(response.error || "Failed to sync customers")
-    },
+    }
 }
+
+export const customerRepository = new CustomerRepository()

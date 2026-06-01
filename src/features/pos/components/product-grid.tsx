@@ -1,8 +1,8 @@
 import { useMemo, memo } from "react"
 import type { Product } from "@/features/pos/domain/models/product.model"
 import { useCart } from "@/features/pos/hooks/use-cart"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent } from "@/shared/components/ui/card"
+import { Badge } from "@/shared/components/ui/badge"
 import { Package, PackageOpen } from "lucide-react"
 
 type ProductGridProps = {

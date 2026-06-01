@@ -1,4 +1,4 @@
-import { db } from "@/features/pos/db"
+import { db } from "@/infrastructure/database/dexie.config"
 
 export const cacheManager = {
   async set<T>(key: string, value: T, ttlMs?: number) {

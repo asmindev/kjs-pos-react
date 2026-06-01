@@ -10,15 +10,15 @@ import {
     Mail,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { Button } from "@/shared/components/ui/button"
+import { Badge } from "@/shared/components/ui/badge"
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
-} from "@/components/ui/dialog"
-import { ScrollArea } from "@/components/ui/scroll-area"
+} from "@/shared/components/ui/dialog"
+import { ScrollArea } from "@/shared/components/ui/scroll-area"
 import { usePosState } from "@/features/pos/hooks/use-pos-state"
 import { useCustomers } from "@/features/pos/hooks/use-customers"
 

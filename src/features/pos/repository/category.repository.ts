@@ -1,9 +1,14 @@
-import { db } from "../db"
+import { db } from "@/infrastructure/database/dexie.config"
 import type { Category } from "../domain/models/category.model"
 import { CategorySchema } from "../domain/models/category.model"
-import { fetchCategories } from "../api/odoo-adapter"
+import { fetchCategories } from "../api/odoo.adapter"
 
-export const categoryRepository = {
+export interface ICategoryRepository {
+    list(): Promise<Category[]>
+    sync(): Promise<number>
+}
+
+export class CategoryRepository implements ICategoryRepository {
     async list(): Promise<Category[]> {
         const results = await db.cachedCategories.toArray()
         return results
@@ -12,7 +17,7 @@ export const categoryRepository = {
                 return parsed.success ? parsed.data : null
             })
             .filter(Boolean) as Category[]
-    },
+    }
 
     async sync(): Promise<number> {
         const response = await fetchCategories()
@@ -29,5 +34,7 @@ export const categoryRepository = {
             return validated.length
         }
         throw new Error(response.error || "Failed to sync categories")
-    },
+    }
 }
+
+export const categoryRepository = new CategoryRepository()

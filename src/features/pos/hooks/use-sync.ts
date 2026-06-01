@@ -7,8 +7,8 @@ import {
     markFailed,
     updateSyncStatus,
     getTransactionByRef,
-} from "@/features/pos/db/sync-queue"
-import { createTransaction } from "@/features/pos/api/odoo-adapter"
+} from "@/features/pos/repository/sync-queue.repository"
+import { createTransaction } from "@/features/pos/api/odoo.adapter"
 
 export function useSync() {
     const { isOnline } = useNetworkStatus()

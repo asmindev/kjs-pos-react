@@ -1,9 +1,15 @@
-import { db } from "../db"
+import { db } from "@/infrastructure/database/dexie.config"
 import type { Product } from "../domain/models/product.model"
 import { ProductSchema } from "../domain/models/product.model"
-import { fetchProducts } from "../api/odoo-adapter"
+import { fetchProducts } from "../api/odoo.adapter"
 
-export const productRepository = {
+export interface IProductRepository {
+    list(): Promise<Product[]>
+    search(query: string, category: string): Promise<Product[]>
+    sync(): Promise<number>
+}
+
+export class ProductRepository implements IProductRepository {
     async list(): Promise<Product[]> {
         const results = await db.cachedProducts.toArray()
         // Map any legacy data if needed, or rely on schema
@@ -20,7 +26,7 @@ export const productRepository = {
                 return parsed.success ? parsed.data : null
             })
             .filter(Boolean) as Product[]
-    },
+    }
 
     async search(query: string, category: string): Promise<Product[]> {
         let collection = db.cachedProducts.toCollection()
@@ -49,7 +55,7 @@ export const productRepository = {
                 return parsed.success ? parsed.data : null
             })
             .filter((p): p is Product => p !== null && (category === "Semua" || p.category === category))
-    },
+    }
 
     async sync(): Promise<number> {
         const response = await fetchProducts()
@@ -81,5 +87,7 @@ export const productRepository = {
             return validated.length
         }
         throw new Error(response.error || "Failed to sync products")
-    },
+    }
 }
+
+export const productRepository = new ProductRepository()

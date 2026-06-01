@@ -1,8 +1,12 @@
-import type { CartItem } from "../models/cart-model"
+import type { CartItem } from "../models/cart.model"
+
+export function calculateLineTotal(item: CartItem) {
+  return item.product.price * item.quantity
+}
 
 export function calculateSubtotal(items: CartItem[]) {
   return items.reduce(
-    (total, item) => total + item.product.price * item.quantity,
+    (total, item) => total + calculateLineTotal(item),
     0
   )
 }

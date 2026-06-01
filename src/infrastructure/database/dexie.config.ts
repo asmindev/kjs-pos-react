@@ -1,6 +1,6 @@
 import Dexie, { type EntityTable } from "dexie"
 
-export type SyncStatus = "pending" | "syncing" | "synced" | "failed"
+export type SyncStatus = "draft" | "confirmed" | "syncing" | "synced" | "failed" | "dead-letter"
 
 export type LocalTransaction = {
     id?: number
@@ -35,8 +35,8 @@ export type CachedProduct = {
     cachedAt: number
 }
 
-import type { Customer } from "../domain/models/customer.model"
-import type { Category } from "../domain/models/category.model"
+import type { Customer } from "@/features/pos/domain/models/customer.model"
+import type { Category } from "@/features/pos/domain/models/category.model"
 
 interface CacheEntry {
     key: string
@@ -46,7 +46,16 @@ interface CacheEntry {
 
 export class POSDatabase extends Dexie {
     transactions!: EntityTable<LocalTransaction, "id">
-    syncQueue!: EntityTable<{ id?: number; transactionRef: string; retries: number; lastAttempt: number }, "id">
+    syncQueue!: EntityTable<{
+        id: string;
+        type: "transaction" | "product-update";
+        payload: unknown;
+        priority: number;
+        retryCount: number;
+        maxRetries: number;
+        createdAt: string;
+        lastAttempt?: string;
+    }, "id">
     cachedProducts!: EntityTable<CachedProduct, "id">
     cachedCustomers!: EntityTable<Customer, "id">
     cachedCategories!: EntityTable<Category, "id">
@@ -57,7 +66,7 @@ export class POSDatabase extends Dexie {
 
         this.version(2).stores({
             transactions: "++id, reference, syncStatus, createdAt, customerId",
-            syncQueue: "++id, transactionRef, retries, lastAttempt",
+            syncQueue: "id, priority, retryCount, [retryCount+priority]",
             cachedProducts: "id, barcode, name",
             cachedCustomers: "id, name",
             cachedCategories: "id, name",
@@ -65,7 +74,7 @@ export class POSDatabase extends Dexie {
 
         this.version(3).stores({
             transactions: "++id, reference, syncStatus, createdAt, customerId",
-            syncQueue: "++id, transactionRef, retries, lastAttempt",
+            syncQueue: "id, priority, retryCount, [retryCount+priority]",
             cachedProducts: "id, barcode, name, category, cachedAt",
             cachedCustomers: "id, name, email, phone, barcode",
             cachedCategories: "id, name",

@@ -1,4 +1,5 @@
 import { create } from "zustand"
+import { persist } from "zustand/middleware"
 
 /**
  * JWT payload dari Odoo pos_rest_api module.
@@ -58,44 +59,49 @@ function isTokenExpired(payload: JwtPayload): boolean {
     return payload.exp < now
 }
 
-export const useAuth = create<AuthState>((set, get) => ({
-    token: null,
-    payload: null,
-    isAuthenticated: false,
-    isExpired: false,
-
-    setToken: (token) => {
-        const payload = decodeJwtPayload(token)
-        const expired = payload ? isTokenExpired(payload) : true
-
-        // Simpan ke localStorage untuk persist
-        if (payload && !expired) {
-            localStorage.setItem("pos_jwt", token)
-        }
-
-        set({
-            token,
-            payload,
-            isAuthenticated: !!payload && !expired,
-            isExpired: expired,
-        })
-    },
-
-    clearAuth: () => {
-        localStorage.removeItem("pos_jwt")
-        set({
+export const useAuth = create<AuthState>()(
+    persist(
+        (set, get) => ({
             token: null,
             payload: null,
             isAuthenticated: false,
             isExpired: false,
-        })
-    },
 
-    getAuthHeader: () => {
-        const { token, isAuthenticated, isExpired } = get()
-        if (token && isAuthenticated && !isExpired) {
-            return `Bearer ${token}`
+            setToken: (token) => {
+                const payload = decodeJwtPayload(token)
+                const expired = payload ? isTokenExpired(payload) : true
+
+                set({
+                    token,
+                    payload,
+                    isAuthenticated: !!payload && !expired,
+                    isExpired: expired,
+                })
+            },
+
+            clearAuth: () => {
+                set({
+                    token: null,
+                    payload: null,
+                    isAuthenticated: false,
+                    isExpired: false,
+                })
+            },
+
+            getAuthHeader: () => {
+                const { token, isAuthenticated, isExpired } = get()
+                if (token && isAuthenticated && !isExpired) {
+                    return `Bearer ${token}`
+                }
+                return null
+            },
+        }),
+        {
+            name: "pos-auth-storage",
+            partialize: (state) => ({
+                token: state.token,
+                payload: state.payload,
+            }),
         }
-        return null
-    },
-}))
+    )
+)

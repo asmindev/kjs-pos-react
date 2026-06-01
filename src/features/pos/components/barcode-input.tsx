@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useImperativeHandle, forwardRef } from "react"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
+import { Input } from "@/shared/components/ui/input"
+import { Button } from "@/shared/components/ui/button"
 import { usePosState } from "@/features/pos/hooks/use-pos-state"
 import { useDebounce } from "@/shared/hooks/use-debounce"
 import { Scan } from "lucide-react"

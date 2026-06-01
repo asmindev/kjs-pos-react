@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-import { productRepository } from "../repository/product-repository"
+import { productRepository } from "../repository/product.repository"
 
 export function useProducts(query: string = "", category: string = "Semua") {
     return useQuery({

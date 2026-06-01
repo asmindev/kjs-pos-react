@@ -1,4 +1,4 @@
-import { Input } from "@/components/ui/input"
+import { Input } from "@/shared/components/ui/input"
 import { useCart } from "@/features/pos/hooks/use-cart"
 import { Tag } from "lucide-react"
 

@@ -5,7 +5,7 @@
  * JWT token di-attach otomatis dari auth store.
  */
 
-import { useAuth } from "@/features/pos/hooks/use-auth"
+import { tokenRepository } from "@/features/auth/repository/token.repository"
 
 const ODOO_BASE_URL =
     import.meta.env.VITE_ODOO_URL ?? "http://localhost:8001"
@@ -21,8 +21,7 @@ async function odooFetch<T>(
     path: string,
     options?: RequestInit
 ): Promise<OdooResponse<T>> {
-    const { getAuthHeader } = useAuth.getState()
-    const authHeader = getAuthHeader()
+    const authHeader = tokenRepository.getAuthHeader()
 
     try {
         const headers: Record<string, string> = {
@@ -55,7 +54,7 @@ async function odooFetch<T>(
                 // Try to refresh token automatically
                 const refreshRes = await refreshToken()
                 if (refreshRes.ok && refreshRes.data) {
-                    useAuth.getState().setToken(refreshRes.data.token)
+                    tokenRepository.setToken(refreshRes.data.token)
                     headers["Authorization"] = `Bearer ${refreshRes.data.token}`
                     
                     // Retry original request
@@ -66,13 +65,15 @@ async function odooFetch<T>(
 
                     if (!response.ok) {
                         if (response.status === 401) {
-                            useAuth.getState().clearAuth()
+                            tokenRepository.clearToken()
+                            // Force clear auth state too, but maybe through event?
+                            // For now we just clear the token repository.
                             return { ok: false, error: "Unauthorized", isUnauthorized: true }
                         }
                         return { ok: false, error: `HTTP ${response.status}` }
                     }
                 } else {
-                    useAuth.getState().clearAuth()
+                    tokenRepository.clearToken()
                     return {
                         ok: false,
                         error: "Unauthorized",

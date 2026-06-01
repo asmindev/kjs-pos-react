@@ -7,14 +7,14 @@ import {
     CardFooter,
     CardHeader,
     CardTitle,
-} from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
+} from "@/shared/components/ui/card"
+import { Button } from "@/shared/components/ui/button"
+import { Badge } from "@/shared/components/ui/badge"
+import { Separator } from "@/shared/components/ui/separator"
 import { CustomerModal } from "@/features/pos/components/customer-modal"
 import { PromoInput } from "@/features/pos/components/promo-input"
 import { ShoppingCart, Banknote } from "lucide-react"
-import { calculateSubtotal } from "@/features/pos/domain/services/pricing-service"
+import { calculateSubtotal } from "@/features/pos/domain/services/pricing.service"
 
 export function CartSidebar() {
     const items = useCart((s) => s.items)
