@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../../Docker/karya-jaya/custom-addons/pos_rest_api"
+		}
+	],
+    "settings": {}
+}

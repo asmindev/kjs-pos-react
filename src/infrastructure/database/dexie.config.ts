@@ -1,40 +1,17 @@
 import Dexie, { type EntityTable } from "dexie"
 
-export type SyncStatus = "draft" | "confirmed" | "syncing" | "synced" | "failed" | "dead-letter"
+// Re-export the canonical types so callers (repos, hooks) can keep their
+// existing `import { ... } from "@/infrastructure/database/dexie.config"`.
+export type { CachedProduct } from "./schemas/product-schema"
+export type {
+    LocalTransaction,
+    SyncStatus,
+} from "./schemas/transaction-schema"
+export type { SyncQueueJob } from "./schemas/sync-queue-schema"
 
-export type LocalTransaction = {
-    id?: number
-    reference: string
-    items: Array<{
-        productId: string
-        productName: string
-        price: number
-        quantity: number
-    }>
-    subtotal: number
-    discount: number
-    total: number
-    paymentMethod: string
-    paidAmount: number
-    changeAmount: number
-    customerId?: string
-    customerName?: string
-    syncStatus: SyncStatus
-    createdAt: number
-    syncedAt?: number
-    errorMessage?: string
-}
-
-export type CachedProduct = {
-    id: string
-    barcode: string
-    name: string
-    price: number
-    stock: number
-    category: string
-    cachedAt: number
-}
-
+import type { CachedProduct } from "./schemas/product-schema"
+import type { LocalTransaction } from "./schemas/transaction-schema"
+import type { SyncQueueJob } from "./schemas/sync-queue-schema"
 import type { Customer } from "@/features/pos/domain/models/customer.model"
 import type { Category } from "@/features/pos/domain/models/category.model"
 
@@ -44,18 +21,21 @@ interface CacheEntry {
     expiresAt: number | null
 }
 
+/**
+ * POS offline-first IndexedDB.
+ *
+ * Schema versions:
+ *   v1 — initial (products, transactions, syncQueue) — see migrations/v1-initial.ts
+ *   v2 — added cachedProducts / cachedCustomers / cachedCategories
+ *   v3 — added `category` and `cachedAt` indexes on products, plus keyValueCache
+ *
+ * Index strings are duplicated inline because Dexie requires the spec at
+ * construction time, not from an imported object. The types above are the
+ * single source of truth for *shape*; the index spec is the schema contract.
+ */
 export class POSDatabase extends Dexie {
     transactions!: EntityTable<LocalTransaction, "id">
-    syncQueue!: EntityTable<{
-        id: string;
-        type: "transaction" | "product-update";
-        payload: unknown;
-        priority: number;
-        retryCount: number;
-        maxRetries: number;
-        createdAt: string;
-        lastAttempt?: string;
-    }, "id">
+    syncQueue!: EntityTable<SyncQueueJob, "id">
     cachedProducts!: EntityTable<CachedProduct, "id">
     cachedCustomers!: EntityTable<Customer, "id">
     cachedCategories!: EntityTable<Category, "id">

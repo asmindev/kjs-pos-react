@@ -6,6 +6,7 @@
  */
 
 import { tokenRepository } from "@/features/auth/repository/token.repository"
+import { logger } from "@/infrastructure/logging/logger"
 
 const ODOO_BASE_URL =
     import.meta.env.VITE_ODOO_URL ?? "http://localhost:8001"
@@ -36,6 +37,7 @@ async function odooFetch<T>(
             headers["Authorization"] = authHeader
         }
 
+        const startMs = Date.now()
         let response = await fetch(`${ODOO_BASE_URL}${path}`, {
             ...options,
             headers,
@@ -81,13 +83,26 @@ async function odooFetch<T>(
                     }
                 }
             } else {
+                logger.warn("odooFetch non-OK response", {
+                    path,
+                    status: response.status,
+                    elapsedMs: Date.now() - startMs,
+                })
                 return { ok: false, error: `HTTP ${response.status}` }
             }
         }
 
         const data = await response.json()
+        logger.debug("odooFetch OK", {
+            path,
+            elapsedMs: Date.now() - startMs,
+        })
         return { ok: true, data }
     } catch (error) {
+        logger.error("odooFetch threw", {
+            path,
+            error: error instanceof Error ? error.message : error,
+        })
         return {
             ok: false,
             error:
