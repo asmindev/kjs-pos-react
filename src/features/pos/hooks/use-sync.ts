@@ -9,6 +9,8 @@ import {
     getTransactionByRef,
 } from "@/features/pos/repository/sync-queue.repository"
 import { createTransaction } from "@/features/pos/api/odoo.adapter"
+import { eventBus } from "@/infrastructure/event-bus/event-bus"
+import { logger } from "@/infrastructure/logging/logger"
 
 export function useSync() {
     const { isOnline } = useNetworkStatus()
@@ -20,12 +22,14 @@ export function useSync() {
         setPendingCount(count)
     }, [])
 
-    // Push a single pending transaction to Odoo
     const pushTransaction = useCallback(
         async (reference: string): Promise<boolean> => {
             try {
                 const tx = await getTransactionByRef(reference)
-                if (!tx) return false
+                if (!tx) {
+                    logger.warn("pushTransaction: tx not found", { reference })
+                    return false
+                }
 
                 await updateSyncStatus(reference, "syncing")
 
@@ -54,6 +58,7 @@ export function useSync() {
                     error instanceof Error
                         ? error.message
                         : "Unknown error"
+                logger.error("pushTransaction threw", { reference, msg })
                 await markFailed(reference, msg)
                 return false
             }
@@ -61,35 +66,48 @@ export function useSync() {
         []
     )
 
-    // Push all pending transactions
     const syncAll = useCallback(async () => {
         if (!isOnline || isSyncing) return
 
+        logger.info("syncAll starting", { isOnline })
         setIsSyncing(true)
         try {
             const pending = await getPendingTransactions()
+            eventBus.publish("sync:started", { count: pending.length })
             for (const tx of pending) {
                 await pushTransaction(tx.reference)
             }
+            eventBus.publish("sync:completed", { count: pending.length })
         } finally {
             setIsSyncing(false)
             await refreshCount()
         }
     }, [isOnline, isSyncing, pushTransaction, refreshCount])
 
-    // Auto-sync when coming back online
+    // Reaktif: setiap status transaksi berubah, refresh pending count
+    useEffect(() => {
+        const unsubscribe = eventBus.subscribe(
+            "transaction:status",
+            () => {
+                refreshCount()
+            }
+        )
+        return unsubscribe
+    }, [refreshCount])
+
+    // Auto-sync saat kembali online
     useEffect(() => {
         if (isOnline) {
             syncAll()
         }
-    }, [isOnline])
+    }, [isOnline, syncAll])
 
-    // Refresh count on mount
+    // Initial count
     useEffect(() => {
         refreshCount()
     }, [refreshCount])
 
-    // Periodic sync when online (every 30 seconds)
+    // Periodic 30s
     useEffect(() => {
         if (!isOnline) return
         const interval = setInterval(syncAll, 30_000)

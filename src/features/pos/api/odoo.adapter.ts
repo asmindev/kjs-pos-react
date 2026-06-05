@@ -7,6 +7,7 @@
 
 import { tokenRepository } from "@/features/auth/repository/token.repository"
 import { logger } from "@/infrastructure/logging/logger"
+import { cacheManager } from "@/infrastructure/cache/cache-manager"
 
 const ODOO_BASE_URL =
     import.meta.env.VITE_ODOO_URL ?? "http://localhost:8001"
@@ -123,14 +124,21 @@ export type OdooProduct = {
     category?: string
 }
 
+const PRODUCT_CACHE_TTL_MS = 5 * 60_000 // 5 minutes
+
 export async function fetchProducts(): Promise<OdooResponse<OdooProduct[]>> {
-    const result = await odooFetch<{ products: OdooProduct[] }>(
-        "/api/products"
-    )
+    const cacheKey = "odoo:products:all"
+    const cached = await cacheManager.get<OdooProduct[]>(cacheKey)
+    if (cached) {
+        logger.debug("fetchProducts:cache hit")
+        return { ok: true, data: cached }
+    }
+
+    const result = await odooFetch<{ products: OdooProduct[] }>("/api/products")
     if (result.ok && result.data) {
+        await cacheManager.set(cacheKey, result.data.products, PRODUCT_CACHE_TTL_MS)
         return { ok: true, data: result.data.products }
     }
-    // Teruskan isUnauthorized agar caller bisa deteksi 401
     return { ok: false, error: result.error, isUnauthorized: result.isUnauthorized }
 }
 
@@ -149,6 +157,7 @@ export async function fetchProductByBarcode(
 export async function fetchProductsByQuery(
     query: string
 ): Promise<OdooResponse<OdooProduct[]>> {
+    // Search is parameterized by query — no caching to avoid stale results.
     const result = await odooFetch<{ products: OdooProduct[] }>(
         `/api/products/search?q=${encodeURIComponent(query)}`
     )
@@ -165,13 +174,23 @@ export type OdooCategory = {
     name: string
 }
 
+const CATEGORY_CACHE_TTL_MS = 60 * 60_000 // 1 hour — categories rarely change
+
 export async function fetchCategories(): Promise<
     OdooResponse<OdooCategory[]>
 > {
+    const cacheKey = "odoo:categories:all"
+    const cached = await cacheManager.get<OdooCategory[]>(cacheKey)
+    if (cached) {
+        logger.debug("fetchCategories:cache hit")
+        return { ok: true, data: cached }
+    }
+
     const result = await odooFetch<{ categories: OdooCategory[] }>(
         "/api/categories"
     )
     if (result.ok && result.data) {
+        await cacheManager.set(cacheKey, result.data.categories, CATEGORY_CACHE_TTL_MS)
         return { ok: true, data: result.data.categories }
     }
     return { ok: false, error: result.error, isUnauthorized: result.isUnauthorized }
@@ -192,6 +211,7 @@ export type OdooCustomer = {
 export async function fetchCustomers(
     query?: string
 ): Promise<OdooResponse<OdooCustomer[]>> {
+    // Search is parameterized by query — no caching to avoid stale results.
     const params = query ? `?q=${encodeURIComponent(query)}` : ""
     const result = await odooFetch<{ customers: OdooCustomer[] }>(
         `/api/customers${params}`
@@ -223,10 +243,15 @@ export type OdooTransactionPayload = {
     created_at: string
 }
 
+export type OdooTransactionResponse = {
+    id: number
+    reference: string
+}
+
 export async function createTransaction(
     payload: OdooTransactionPayload
-): Promise<OdooResponse<{ id: number; reference: string }>> {
-    return odooFetch("/api/transactions", {
+): Promise<OdooResponse<OdooTransactionResponse>> {
+    return odooFetch<OdooTransactionResponse>("/api/transactions", {
         method: "POST",
         body: JSON.stringify(payload),
     })
@@ -234,18 +259,27 @@ export async function createTransaction(
 
 // --- Health ---
 
+export type OdooHealthResponse = {
+    version: string
+}
+
 export async function checkOdooConnection(): Promise<
-    OdooResponse<{ version: string }>
+    OdooResponse<OdooHealthResponse>
 > {
-    return odooFetch("/api/health")
+    return odooFetch<OdooHealthResponse>("/api/health")
 }
 
 // --- Auth Refresh ---
 
+export type OdooAuthRefreshResponse = {
+    token: string
+    expires_at: string
+}
+
 export async function refreshToken(): Promise<
-    OdooResponse<{ token: string; expires_at: string }>
+    OdooResponse<OdooAuthRefreshResponse>
 > {
-    return odooFetch("/api/auth/refresh")
+    return odooFetch<OdooAuthRefreshResponse>("/api/auth/refresh")
 }
 
 export { odooFetch }

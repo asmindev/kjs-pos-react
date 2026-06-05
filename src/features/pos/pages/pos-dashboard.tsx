@@ -19,6 +19,7 @@ import { useAuth } from "@/features/pos/hooks/use-auth"
 import { Button } from "@/shared/components/ui/button"
 import { cn } from "@/lib/utils"
 import { ButtonGroup } from "@/shared/components/ui/button-group"
+import { ModeToggle } from "@/shared/components/mode-toggle"
 import { RestrictedModal } from "@/features/pos/components/restricted-modal"
 import {
     Popover,
@@ -123,6 +124,7 @@ export default function POSDashboard() {
                             />
                             {isSyncing ? "Syncing..." : "Sync Data"}
                         </Button>
+                        <ModeToggle />
                     </div>
                 </div>
 
