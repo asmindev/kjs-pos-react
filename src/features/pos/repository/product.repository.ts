@@ -2,6 +2,7 @@ import { db } from "@/infrastructure/database/dexie.config"
 import type { Product } from "../domain/models/product.model"
 import { ProductSchema } from "../domain/models/product.model"
 import { fetchProducts } from "../api/odoo.adapter"
+import { APP_CONSTANTS } from "@/config/app.config"
 
 export interface IProductRepository {
     list(): Promise<Product[]>
@@ -43,7 +44,7 @@ export class ProductRepository implements IProductRepository {
         // Apply category filter before pagination if possible, 
         // but Dexie filter is executed sequentially.
         // It's safer to filter first, then limit/offset.
-        if (category !== "Semua") {
+        if (category !== APP_CONSTANTS.CATEGORY_ALL) {
             const currentCollection = collection
             collection = currentCollection.filter((p) => p.category === category)
         }

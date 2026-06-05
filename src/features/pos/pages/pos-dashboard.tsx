@@ -34,6 +34,7 @@ import {
     CommandGroup,
     CommandItem,
 } from "@/shared/components/ui/command"
+import { appConfig, APP_CONSTANTS } from "@/config/app.config"
 
 export default function POSDashboard() {
     const {
@@ -73,7 +74,7 @@ export default function POSDashboard() {
                             <Store className="size-4" />
                         </div>
                         <h1 className="font-heading text-lg font-bold tracking-tight">
-                            POS KJS
+                            {appConfig.app.storeName}
                         </h1>
                         {products.length > 0 && (
                             <span className="text-xs font-normal text-muted-foreground">
@@ -147,7 +148,7 @@ export default function POSDashboard() {
                     <div className="flex w-full shrink-0 items-start justify-between pb-2">
                         <ButtonGroup className="w-full flex-wrap gap-y-1">
                             {(() => {
-                                const MAX_VISIBLE = 15
+                                const MAX_VISIBLE = APP_CONSTANTS.MAX_VISIBLE_CATEGORIES
                                 const visible = categories.slice(0, MAX_VISIBLE)
                                 const overflow = categories.slice(MAX_VISIBLE)
                                 return (
@@ -356,7 +357,7 @@ export default function POSDashboard() {
                     </div>
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                         <Printer className="size-3.5" />
-                        <span className="font-medium">EPSON TM-T82 siap</span>
+                        <span className="font-medium">{APP_CONSTANTS.PRINTER_MODEL} siap</span>
                     </div>
                 </div>
             </div>

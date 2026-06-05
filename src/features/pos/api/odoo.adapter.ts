@@ -8,9 +8,7 @@
 import { tokenRepository } from "@/features/auth/repository/token.repository"
 import { logger } from "@/infrastructure/logging/logger"
 import { cacheManager } from "@/infrastructure/cache/cache-manager"
-
-const ODOO_BASE_URL =
-    import.meta.env.VITE_ODOO_URL ?? "http://localhost:8001"
+import { appConfig, APP_CONSTANTS } from "@/config/app.config"
 
 type OdooResponse<T> = {
     ok: boolean
@@ -39,7 +37,7 @@ async function odooFetch<T>(
         }
 
         const startMs = Date.now()
-        let response = await fetch(`${ODOO_BASE_URL}${path}`, {
+        let response = await fetch(`${appConfig.odoo.baseUrl}${path}`, {
             ...options,
             headers,
         })
@@ -61,7 +59,7 @@ async function odooFetch<T>(
                     headers["Authorization"] = `Bearer ${refreshRes.data.token}`
                     
                     // Retry original request
-                    response = await fetch(`${ODOO_BASE_URL}${path}`, {
+                    response = await fetch(`${appConfig.odoo.baseUrl}${path}`, {
                         ...options,
                         headers,
                     })
@@ -124,7 +122,7 @@ export type OdooProduct = {
     category?: string
 }
 
-const PRODUCT_CACHE_TTL_MS = 5 * 60_000 // 5 minutes
+const PRODUCT_CACHE_TTL_MS = APP_CONSTANTS.PRODUCT_CACHE_TTL_MS
 
 export async function fetchProducts(): Promise<OdooResponse<OdooProduct[]>> {
     const cacheKey = "odoo:products:all"
@@ -174,7 +172,7 @@ export type OdooCategory = {
     name: string
 }
 
-const CATEGORY_CACHE_TTL_MS = 60 * 60_000 // 1 hour — categories rarely change
+const CATEGORY_CACHE_TTL_MS = APP_CONSTANTS.CATEGORY_CACHE_TTL_MS
 
 export async function fetchCategories(): Promise<
     OdooResponse<OdooCategory[]>

@@ -1,5 +1,6 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
+import { APP_CONSTANTS } from "@/config/app.config"
 
 /**
  * JWT payload dari Odoo pos_rest_api module.
@@ -97,7 +98,7 @@ export const useAuth = create<AuthState>()(
             },
         }),
         {
-            name: "pos-auth-storage",
+            name: APP_CONSTANTS.AUTH_STORAGE_KEY,
             partialize: (state) => ({
                 token: state.token,
                 payload: state.payload,

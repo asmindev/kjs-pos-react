@@ -6,6 +6,7 @@ import {
     calculateSubtotal,
     calculateTotal,
 } from "../domain/services/pricing.service"
+import { APP_CONSTANTS } from "@/config/app.config"
 
 type CartState = {
     items: CartItem[]
@@ -91,7 +92,7 @@ export const useCart = create<CartState>()(
             getTotal: () => calculateTotal(get().items, get().discount),
         }),
         {
-            name: "pos-cart-storage",
+            name: APP_CONSTANTS.CART_STORAGE_KEY,
             partialize: (state) => ({
                 items: state.items,
                 discount: state.discount,

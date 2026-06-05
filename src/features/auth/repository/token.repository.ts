@@ -1,6 +1,8 @@
+import { APP_CONSTANTS } from "@/config/app.config"
+
 export const tokenRepository = {
     getToken(): string | null {
-        const data = localStorage.getItem("pos-auth-storage")
+        const data = localStorage.getItem(APP_CONSTANTS.AUTH_STORAGE_KEY)
         if (data) {
             try {
                 const parsed = JSON.parse(data)
@@ -14,7 +16,7 @@ export const tokenRepository = {
 
     setToken(token: string): void {
         // Not used directly if Zustand manages state, but implemented for completeness
-        const data = localStorage.getItem("pos-auth-storage")
+        const data = localStorage.getItem(APP_CONSTANTS.AUTH_STORAGE_KEY)
         let parsed: {
             state: { token: string | null; payload: any }
             version: number
@@ -25,11 +27,11 @@ export const tokenRepository = {
             } catch {}
         }
         parsed.state.token = token
-        localStorage.setItem("pos-auth-storage", JSON.stringify(parsed))
+        localStorage.setItem(APP_CONSTANTS.AUTH_STORAGE_KEY, JSON.stringify(parsed))
     },
 
     clearToken(): void {
-        const data = localStorage.getItem("pos-auth-storage")
+        const data = localStorage.getItem(APP_CONSTANTS.AUTH_STORAGE_KEY)
         if (data) {
             try {
                 const parsed: {
@@ -38,7 +40,7 @@ export const tokenRepository = {
                 } = JSON.parse(data)
                 parsed.state.token = null
                 parsed.state.payload = null
-                localStorage.setItem("pos-auth-storage", JSON.stringify(parsed))
+                localStorage.setItem(APP_CONSTANTS.AUTH_STORAGE_KEY, JSON.stringify(parsed))
             } catch {}
         }
     },

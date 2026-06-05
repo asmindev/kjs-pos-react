@@ -4,10 +4,11 @@ import { useCategories } from "./use-categories"
 import { usePosSync } from "./use-pos-sync"
 import { useCart } from "./use-cart"
 import type { BarcodeInputRef } from "../components/barcode-input"
+import { APP_CONSTANTS } from "@/config/app.config"
 
 export function usePosDashboard() {
     const [searchTerm, setSearchTerm] = useState("")
-    const [activeCategory, setActiveCategory] = useState("Semua")
+    const [activeCategory, setActiveCategory] = useState(APP_CONSTANTS.CATEGORY_ALL)
     const [openCategory, setOpenCategory] = useState(false)
     const barcodeRef = useRef<BarcodeInputRef>(null)
 
@@ -31,7 +32,7 @@ export function usePosDashboard() {
 
     const categories = useMemo(() => {
         const names = categoriesData.map((c) => c.name)
-        return ["Semua", ...Array.from(new Set(names))]
+        return [APP_CONSTANTS.CATEGORY_ALL, ...Array.from(new Set(names))]
     }, [categoriesData])
 
     const handleSearch = useCallback((query: string) => {

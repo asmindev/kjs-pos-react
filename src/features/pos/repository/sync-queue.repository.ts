@@ -1,6 +1,7 @@
 import { db, type LocalTransaction, type SyncStatus } from "@/infrastructure/database/dexie.config"
 import { logger } from "@/infrastructure/logging/logger"
 import { eventBus } from "@/infrastructure/event-bus/event-bus"
+import { APP_CONSTANTS } from "@/config/app.config"
 
 function generateReference(): string {
     const now = new Date()
@@ -40,9 +41,9 @@ export async function saveTransactionLocal(
         id: crypto.randomUUID(),
         type: "transaction",
         payload: { reference: transaction.reference },
-        priority: 1,
+        priority: APP_CONSTANTS.SYNC_PRIORITY_TRANSACTION,
         retryCount: 0,
-        maxRetries: 3,
+        maxRetries: APP_CONSTANTS.SYNC_MAX_RETRIES,
         createdAt: new Date().toISOString(),
     })
 

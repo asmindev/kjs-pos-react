@@ -11,6 +11,7 @@ import {
 import { createTransaction } from "@/features/pos/api/odoo.adapter"
 import { eventBus } from "@/infrastructure/event-bus/event-bus"
 import { logger } from "@/infrastructure/logging/logger"
+import { APP_CONSTANTS } from "@/config/app.config"
 
 export function useSync() {
     const { isOnline } = useNetworkStatus()
@@ -110,7 +111,7 @@ export function useSync() {
     // Periodic 30s
     useEffect(() => {
         if (!isOnline) return
-        const interval = setInterval(syncAll, 30_000)
+        const interval = setInterval(syncAll, APP_CONSTANTS.SYNC_INTERVAL_MS)
         return () => clearInterval(interval)
     }, [isOnline, syncAll])
 
