@@ -8,7 +8,7 @@ import { APP_CONSTANTS } from "@/config/app.config"
 
 export function usePosDashboard() {
     const [searchTerm, setSearchTerm] = useState("")
-    const [activeCategory, setActiveCategory] = useState(APP_CONSTANTS.CATEGORY_ALL)
+    const [activeCategory, setActiveCategory] = useState<string>(APP_CONSTANTS.CATEGORY_ALL)
     const [openCategory, setOpenCategory] = useState(false)
     const barcodeRef = useRef<BarcodeInputRef>(null)
 

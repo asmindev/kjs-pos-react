@@ -3,6 +3,7 @@ import {
     DialogContent,
 } from "@/shared/components/ui/dialog"
 import { Button } from "@/shared/components/ui/button"
+import { appConfig } from "@/config/app.config"
 
 interface RestrictedModalProps {
     open: boolean
@@ -41,10 +42,8 @@ export function RestrictedModal({
                         <p>Silahkan login kembali untuk melanjutkan</p>
                     </div>
                     <Button
-                        onClick={async () => {
-                            const { odooConfig } =
-                                await import("@/config/odoo-config")
-                            window.location.href = odooConfig.odooPosUrl
+                        onClick={() => {
+                            window.location.href = appConfig.odoo.posUrl
                         }}
                     >
                         Login ke Odoo
